@@ -1,5 +1,5 @@
-#ifndef LL_INTERFACE_H___
-#define LL_INTERFACE_H___
+#ifndef LL_FRAMES_H___
+#define LL_FRAMES_H___
 
 #include "ll-core.h"
 
@@ -31,4 +31,4 @@ int writeRRframe(int fd, int parity);
 
 int writeREJframe(int fd, int parity);
 
-#endif // LL_INTERFACE_H___
+#endif // LL_FRAMES_H___

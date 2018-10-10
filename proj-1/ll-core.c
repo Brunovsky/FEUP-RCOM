@@ -194,6 +194,7 @@ static int destuffText(char* text, char** outp, char* bcc2) {
 
 static int buildText(frame f, char** textp) {
     if (f.data == NULL) {
+        // S or U frame (control frame)
         char* buf = malloc(6 * sizeof(char));
 
         buf[0] = FRAME_FLAG;
@@ -206,6 +207,7 @@ static int buildText(frame f, char** textp) {
         *textp = buf;
         return 0;
     } else {
+        // I frame (data frame)
         char* stuffed_data;
         char bcc2;
         stuffData(f.data, &stuffed_data, &bcc2);

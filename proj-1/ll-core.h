@@ -1,5 +1,5 @@
-#ifndef LL_H___
-#define LL_H___
+#ifndef LL_CORE_H___
+#define LL_CORE_H___
 
 #include <stddef.h>
 
@@ -16,4 +16,4 @@ int writeFrame(int fd, frame f);
 
 int readFrame(int fd, frame* fp);
 
-#endif // LL_H___
+#endif // LL_CORE_H___
