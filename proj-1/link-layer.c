@@ -277,6 +277,9 @@ int readFrame(int fd, frame* fp) {
 
         strncpy(f.data, text + 4, data_len);
         f.data[data_len] = '\0';
+    } else {
+        f.data = NULL;
+        f.length = f.reserved = 0;
     }
 
     *fp = f;
