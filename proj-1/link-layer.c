@@ -243,7 +243,6 @@ int readFrame(int fd, frame* fp) {
     printf("%s", text);
 
     size_t len = strlen(text);
-    size_t data_len = len - 6;
 
     if (len < 5 || len == 6) {
         return FRAME_READ_BAD_LENGTH;
@@ -260,22 +259,25 @@ int readFrame(int fd, frame* fp) {
         return FRAME_READ_BAD_BCC1;
     }
 
-    char bcc2 = 0;
+    if (len > 6) {
+        size_t data_len = len - 6;
+        char bcc2 = 0;
 
-    while (j < len - 2) {
-        bcc2 ^= text[j++];
+        while (j < len - 2) {
+            bcc2 ^= text[j++];
+        }
+
+        if (bcc2 != text[j++]) {
+            return FRAME_READ_BAD_BCC2;
+        }
+
+        f.data = malloc((data_len + 1) * sizeof(char));
+        f.reserved = data_len + 1;
+        f.length = data_len;
+
+        strncpy(f.data, text + 4, data_len);
+        f.data[data_len] = '\0';
     }
-
-    if (bcc2 != text[j++]) {
-        return FRAME_READ_BAD_BCC2;
-    }
-
-    f.data = malloc((data_len + 1) * sizeof(char));
-    f.reserved = data_len + 1;
-    f.length = data_len;
-
-    strncpy(f.data, text + 4, data_len);
-    f.data[data_len] = '\0';
 
     *fp = f;
 
