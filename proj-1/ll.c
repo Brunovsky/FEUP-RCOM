@@ -45,7 +45,7 @@ int setup_terminal(char* name) {int fd, res = 0;
 
     /* set input mode (non-canonical, no echo,...) */
     newtio.c_lflag = 0;
-    newtio.c_cc[VTIME]    = 1;   
+    newtio.c_cc[VTIME]    = 1;
     newtio.c_cc[VMIN]     = 0;
 
     // VTIME e VMIN devem ser alterados de forma a proteger com um temporizador a
@@ -59,4 +59,20 @@ int setup_terminal(char* name) {int fd, res = 0;
     }
 
     fflush(NULL);
+}
+
+int sendControl(int fd) {
+
+  char message[5];
+
+  message[0] = 0x7E;
+  message[1] = 0x03;
+  message[2] = 0x03;
+  message[3] = message[1]^message[2];
+  message[4] = 0x7E;
+
+  if (write(fd,message,5) < 0){
+    printf("Error in writing control message at sendControl() \n");
+    return -1;
+  }
 }
