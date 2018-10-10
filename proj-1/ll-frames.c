@@ -15,9 +15,9 @@
  * Frames UA, RR, REJ: Response
  */
 
-bool isIframe(frame f) {
+bool isIframe(frame f, int parity) {
 	return f.a == FRAME_A_COMMAND &&
-	       f.c == 0 || f.c == 1 &&
+	       f.c == (parity % 2) &&
 	       f.data != NULL;
 }
 
