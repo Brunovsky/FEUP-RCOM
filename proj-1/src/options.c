@@ -116,7 +116,36 @@ static void clear_options() {
     free(files);
 }
 
+static void dump_options() {
+    static const char* dump_string = " === Options ===\n"
+        " show_help: %d\n"
+        " show_usage: %d\n"
+        " show_version: %d\n"
+        " time_retries: %d\n"
+        " answer_retries: %d\n"
+        " timeout: %d\n"
+        " device: %s\n"
+        " packetsize: %lu\n"
+        " send_filesize: %d\n"
+        " send_filename: %d\n"
+        " incoherent: %s\n"
+        " number_of_files: %d\n"
+        " files: %x\n";
+
+    printf(dump_string, show_help, show_usage, show_version, time_retries,
+        answer_retries, timeout, device, packetsize, send_filesize,
+        send_filename, incoherent, number_of_files, files);
+
+    if (files != NULL) {
+        for (size_t i = 0; i < number_of_files; ++i) {
+            printf(" > file#%lu: %s\n", i, files[i]);
+        }
+    }
+}
+
 static void print_all() {
+    if (DEBUG) dump_options();
+
     setlocale(LC_ALL, "");
     wprintf(usage);
     wprintf(version);
@@ -124,30 +153,40 @@ static void print_all() {
 }
 
 static void print_usage() {
+    if (DEBUG) dump_options();
+    
     setlocale(LC_ALL, "");
     wprintf(usage);
     exit(EXIT_SUCCESS);
 }
 
 static void print_version() {
+    if (DEBUG) dump_options();
+    
     setlocale(LC_ALL, "");
     wprintf(version);
     exit(EXIT_SUCCESS);
 }
 
 static void print_numpositional(int n) {
+    if (DEBUG) dump_options();
+    
     setlocale(LC_ALL, "");
     wprintf(L"Error: Expected 1 or more positional arguments (filenames), but got %d.\n%S", n, usage);
     exit(EXIT_SUCCESS);
 }
 
 static void print_badpositional(int i) {
+    if (DEBUG) dump_options();
+    
     setlocale(LC_ALL, "");
     wprintf(L"Error: Positional argument #%d is invalid.\n%S", i, usage);
     exit(EXIT_SUCCESS);
 }
 
 static void print_badarg(const char* option) {
+    if (DEBUG) dump_options();
+    
     setlocale(LC_ALL, "");
     wprintf(L"Error: Bad argument for option %s.\n%S", option, usage);
     exit(EXIT_SUCCESS);
@@ -191,33 +230,6 @@ static int parse_incoherent(const char* str, const char** outp) {
     return 1;
 }
 
-static void dump_options() {
-    static const wchar_t* dump_string = L" === Options ===\n"
-        " show_help: %d\n"
-        " show_usage: %d\n"
-        " show_version: %d\n"
-        " time_retries: %d\n"
-        " answer_retries: %d\n"
-        " timeout: %d\n"
-        " device: %s\n"
-        " packetsize: %lu\n"
-        " send_filesize: %d\n"
-        " send_filename: %d\n"
-        " incoherent: %s\n"
-        " number_of_files: %d\n"
-        " files: %x\n";
-
-    wprintf(dump_string, show_help, show_usage, show_version, time_retries,
-        answer_retries, timeout, device, packetsize, send_filesize,
-        send_filename, incoherent, number_of_files, files);
-
-    if (files != NULL) {
-        for (size_t i = 0; i < number_of_files; ++i) {
-            wprintf(L" > file#%lu: %s\n", i, files[i]);
-        }
-    }
-}
-
 /**
  * Standard unix main's argument parsing function. Allocates resources
  * that are automatically freed at exit.
@@ -227,8 +239,6 @@ int parse_args(int argc, char** argv) {
     // opterr = 0;
 
     atexit(clear_options);
-
-    if (DEBUG) atexit(dump_options);
 
     // If there are no args, print usage and version messages and exit
     if (argc == 1) {
