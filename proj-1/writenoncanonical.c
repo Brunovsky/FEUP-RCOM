@@ -37,10 +37,14 @@ int main(int argc, char** argv)
     fd = open(argv[1], O_RDWR | O_NOCTTY );
     if (fd < 0) { perror(argv[1]); exit(-1); }
 
+    printf("Opened tty\n");
+
     if ( tcgetattr(fd, &oldtio) == -1) { /* save current port settings */
       perror("tcgetattr");
       exit(-1);
     }
+
+    printf("Read attributes\n");
 
     bzero(&newtio, sizeof(newtio));
     newtio.c_cflag = BAUDRATE | CS8 | CLOCAL | CREAD;
@@ -68,6 +72,8 @@ int main(int argc, char** argv)
       perror("tcsetattr");
       exit(-1);
     }
+
+    printf("Set attributes\n");
 
     printf("New termios structure set\n");
 
@@ -108,6 +114,8 @@ int main(int argc, char** argv)
  
     printf(":%s:%d\n", buf, i);
 
+    printf("Finished\n");
+
     fflush(NULL);
     sleep(1);
 
@@ -117,6 +125,8 @@ int main(int argc, char** argv)
       perror("tcsetattr");
       exit(-1);
     }
+
+    printf("Set old attributes\n");
 
     close(fd);
     return 0;

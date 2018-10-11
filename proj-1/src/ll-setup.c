@@ -1,4 +1,5 @@
 #include "ll-setup.h"
+#include "debug.h"
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -32,6 +33,8 @@ int setup_link_layer(const char* name) {
         perror("Failed to open terminal");
         exit(EXIT_FAILURE);
     }
+
+    printf("Past open\n");
 
     // Save current terminal settings in oldtios.
     if (tcgetattr(fd, &oldtios) == -1) {
