@@ -67,7 +67,7 @@ static int make_control_packet(char control, char** tlvp, size_t n, char** outp)
     data[1] = '\0';
 
     for (size_t i = 0; i < n; ++i) {
-        tmp = stpcpy(tmp, tlvp[i]);
+        tmp = stpncpy(tmp, tlvp[i], strlen(tlvp[i]));
     }
 
     *outp = data;

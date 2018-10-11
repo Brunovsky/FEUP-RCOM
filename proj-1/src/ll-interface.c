@@ -50,6 +50,8 @@ static int llclose_transmitter(int fd) {
             return 0;
         }
     } while (++count < retries);
+
+    return 1;
 }
 
 static int llclose_receiver(int fd) {
@@ -111,6 +113,7 @@ int llread(int fd, char** messagep) {
 
         if (isIframe(f, index)) {
             writeRRframe(fd, ++index);
+            *messagep = f.data;
             return 0;
         } else {
             writeREJframe(fd, index);
