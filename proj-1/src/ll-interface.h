@@ -9,4 +9,8 @@ int llopen(int fd, role_t role);
 
 int llclose(int fd, role_t role);
 
+int llwrite(int fd, char* message);
+
+int llread(int fd, char** messagep);
+
 #endif // LL_INTERFACE_H___

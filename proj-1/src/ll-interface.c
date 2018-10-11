@@ -29,26 +29,27 @@ static int llopen_receiver(int fd) {
 }
 
 int llopen(int fd, role_t role) {
-    switch (role) {
-    case TRANSMITTER:
-        llopen_transmitter(fd);
-        break;
-    case RECEIVER:
-        llopen_receiver(fd);
-        break;
+    if (role == TRANSMITTER) {
+        return llopen_transmitter(fd);
+    } else {
+        return llopen_receiver(fd);
     }
 }
 
 static int llclose_transmitter(int fd) {
-    writeDISCframe(fd);
+    size_t count = 3;
 
-    frame f;
-    readFrame(fd, &f);
+    do {
+        writeDISCframe(fd);
 
-    if (!isDISCframe(f)) {
-        writeUAframe(fd);
-        return 0;
-    }
+        frame f;
+        readFrame(fd, &f);
+
+        if (isDISCframe(f)) {
+            writeUAframe(fd);
+            return 0;
+        }
+    } while (++count < retries);
 }
 
 static int llclose_receiver(int fd) {
@@ -71,13 +72,10 @@ static int llclose_receiver(int fd) {
 }
 
 int llclose(int fd, role_t role) {
-    switch (role) {
-    case TRANSMITTER:
-        llclose_transmitter(fd);
-        break;
-    case RECEIVER:
-        llclose_receiver(fd);
-        break;
+    if (role == TRANSMITTER) {
+        return llclose_transmitter(fd);
+    } else {
+        return llclose_receiver(fd);
     }
 }
 
@@ -121,4 +119,3 @@ int llread(int fd, char** messagep) {
 
     return 1;
 }
-

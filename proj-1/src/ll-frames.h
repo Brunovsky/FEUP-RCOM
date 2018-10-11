@@ -6,7 +6,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 
-bool isIframe(frame f);
+bool isIframe(frame f, int parity);
 
 bool isSETframe(frame f);
 

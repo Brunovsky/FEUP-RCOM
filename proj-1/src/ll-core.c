@@ -262,8 +262,6 @@ static int readText(int fd, char** textp) {
                 buf[j++] = c;
             }
             break;
-        default:
-            assert(false);
         }
 
         if ((j + 1) == reserved) {
@@ -312,7 +310,7 @@ int readFrame(int fd, frame* fp) {
     }
 
     if (text_len > 6) {
-        char* data;
+        char* data = NULL;
         char bcc2;
         destuffText(text, &data, &bcc2);
 
