@@ -1,4 +1,6 @@
 #include "ll-core.h"
+#include "options.h"
+#include "signals.h"
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -9,6 +11,7 @@
 #include <fcntl.h>
 #include <termios.h>
 #include <stdbool.h>
+#include <errno.h>
 #include <assert.h>
 
 // variable name
@@ -171,7 +174,16 @@ static int readText(int fd, char** textp) {
 
     while (state != READ_END_FLAG) {
         char readbuf[2];
-        read(fd, &readbuf, 1);
+        ssize_t s = read(fd, &readbuf, 1);
+
+        if (s == 0) continue;
+
+        if (s == -1) {
+            if (errno == EINTR) return FRAME_READ_TIMEOUT;
+            else if (errno == EIO) continue;
+            else return FRAME_READ_INVALID;
+        }
+
         char c = readbuf[0];
 
         switch (state) {
@@ -220,13 +232,18 @@ int writeFrame(int fd, frame f) {
 
 int readFrame(int fd, frame* fp) {
     char* text;
-    readText(fd, &text);
+
+    set_alarm(timeout * 1000);
+    int s = readText(fd, &text);
+    unset_alarm();
+
+    if (s != 0) return s;
 
     size_t text_len = strlen(text);
 
     if (text_len < 5 || text_len == 6) {
         free(text);
-        return FRAME_READ_BAD_LENGTH;
+        return FRAME_READ_INVALID;
     }
 
     frame f = {
@@ -239,7 +256,7 @@ int readFrame(int fd, frame* fp) {
 
     if (bcc1 != (f.a ^ f.c)) {
         free(text);
-        return FRAME_READ_BAD_BCC1;
+        return FRAME_READ_INVALID;
     }
 
     if (text_len > 6) {
@@ -247,12 +264,12 @@ int readFrame(int fd, frame* fp) {
         char bcc2;
         int s = destuffText(text, &data, &bcc2);
 
-        if (s != 0) return s;
+        if (s != 0) return FRAME_READ_INVALID;
 
         if (bcc2 != text[text_len - 2]) {
             free(text);
             free(data);
-            return FRAME_READ_BAD_BCC2;
+            return FRAME_READ_INVALID;
         }
 
         f.data = data;
@@ -261,5 +278,5 @@ int readFrame(int fd, frame* fp) {
     *fp = f;
 
     free(text);
-    return 0;
+    return FRAME_READ_OK;
 }
