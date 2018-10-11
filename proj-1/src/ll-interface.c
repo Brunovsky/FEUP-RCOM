@@ -47,14 +47,6 @@ static int llopen_receiver(int fd) {
     return 2;
 }
 
-int llopen(int fd, role_t role) {
-    if (role == TRANSMITTER) {
-        return llopen_transmitter(fd);
-    } else {
-        return llopen_receiver(fd);
-    }
-}
-
 static int llclose_transmitter(int fd) {
     int time_count = 0;
 
@@ -106,11 +98,11 @@ static int llclose_receiver(int fd) {
     return 2;
 }
 
-int llclose(int fd, role_t role) {
+int llopen(int fd, role_t role) {
     if (role == TRANSMITTER) {
-        return llclose_transmitter(fd);
+        return llopen_transmitter(fd);
     } else {
-        return llclose_receiver(fd);
+        return llopen_receiver(fd);
     }
 }
 
@@ -180,4 +172,12 @@ int llread(int fd, char** messagep) {
     }
 
     return 1;
+}
+
+int llclose(int fd, role_t role) {
+    if (role == TRANSMITTER) {
+        return llclose_transmitter(fd);
+    } else {
+        return llclose_receiver(fd);
+    }
 }

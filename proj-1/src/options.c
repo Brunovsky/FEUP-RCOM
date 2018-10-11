@@ -24,7 +24,7 @@ char* device = NULL; // d, device
 size_t packetsize = PACKETSIZE_DEFAULT; // p, packetsize
 int send_filesize = PACKET_FILESIZE_DEFAULT; // filesize, no-filesize
 int send_filename = PACKET_FILENAME_DEFAULT; // filename, no-filename
-const char* incoherent = NULL; // i, incoherent
+const char* incoherent = INCOHERENT_CONTINUE; // i, incoherent
 
 // Positional
 char** files = NULL;
@@ -108,7 +108,6 @@ static const wchar_t* usage = L"usage: ll [option]... files...\n"
  */
 static void clear_options() {
     free(device);
-    free(incoherent);
 
     for (size_t i = 0; i < number_of_files; ++i) {
         free(files[i]);
@@ -179,12 +178,17 @@ static int parse_ulong(const char* str, size_t* outp) {
 }
 
 static int parse_incoherent(const char* str, const char** outp) {
-    if (strcmp(str, INCOHERENT_CRASH) && strcmp(str, INCOHERENT_CONTINUE)) {
-        return 1;
+    if (strcmp(str, INCOHERENT_CRASH) == 0) {
+        *outp = INCOHERENT_CRASH;
+        return 0;
     }
 
-    *outp = strdup(str);
-    return 0;
+    if (strcmp(str, INCOHERENT_CONTINUE) == 0) {
+        *outp = INCOHERENT_CONTINUE;
+        return 0;
+    }
+
+    return 1;
 }
 
 static void dump_options() {
@@ -307,10 +311,6 @@ int parse_args(int argc, char** argv) {
         device = strdup(DEVICE_DEFAULT);
     }
 
-    if (incoherent == NULL) {
-        incoherent = strdup(INCOHERENT_DEFAULT);
-    }
-
     // Positional arguments processing
     if (optind < argc) {
         number_of_files = argc - optind;
@@ -325,9 +325,7 @@ int parse_args(int argc, char** argv) {
         print_numpositional(0);
     }
 
-    return 0;
-}
+    if (DEBUG) dump_options();
 
-int main(int argc, char** argv) {
-    return parse_args(argc, argv);
+    return 0;
 }

@@ -245,7 +245,9 @@ int readFrame(int fd, frame* fp) {
     if (text_len > 6) {
         char* data = NULL;
         char bcc2;
-        destuffText(text, &data, &bcc2);
+        int s = destuffText(text, &data, &bcc2);
+
+        if (s != 0) return s;
 
         if (bcc2 != text[text_len - 2]) {
             free(text);
