@@ -17,7 +17,8 @@ static int show_help = false; // h, help
 static int show_usage = false; // usage
 static int show_version = false; // V, version
 
-int retries = RETRIES_DEFAULT; // r, retries
+int time_retries = TIME_RETRIES_DEFAULT; // time-retries
+int answer_retries = ANSWER_RETRIES_DEFAULT; // answer-retries
 int timeout = TIMEOUT_DEFAULT; // t, timeout
 char* device = NULL; // d, device
 size_t packetsize = PACKETSIZE_DEFAULT; // p, packetsize
@@ -33,18 +34,19 @@ size_t number_of_files = 0;
 
 static const struct option long_options[] = {
     // general options
-    {HELP_LFLAG,                    no_argument, &show_help,       true},
-    {USAGE_LFLAG,                   no_argument, &show_usage,      true},
-    {VERSION_LFLAG,                 no_argument, &show_version,    true},
+    {HELP_LFLAG,                    no_argument, &show_help,          true},
+    {USAGE_LFLAG,                   no_argument, &show_usage,         true},
+    {VERSION_LFLAG,                 no_argument, &show_version,       true},
 
-    {RETRIES_LFLAG,           required_argument, NULL,     RETRIES_FLAG},
-    {TIMEOUT_LFLAG,           required_argument, NULL,     TIMEOUT_FLAG},
-    {DEVICE_LFLAG,            required_argument, NULL,      DEVICE_FLAG},
-    {PACKETSIZE_LFLAG,        required_argument, NULL,  PACKETSIZE_FLAG},
-    {PACKET_FILESIZE_LFLAG,         no_argument, &send_filesize,   true},
-    {PACKET_NOFILESIZE_LFLAG,       no_argument, &send_filesize,  false},
-    {PACKET_FILENAME_LFLAG,         no_argument, &send_filename,   true},
-    {PACKET_NOFILENAME_LFLAG,       no_argument, &send_filename,  false},
+    {TIME_RETRIES_LFLAG,      required_argument, NULL,   TIME_RETRIES_FLAG},
+    {ANSWER_RETRIES_LFLAG,    required_argument, NULL, ANSWER_RETRIES_FLAG},
+    {TIMEOUT_LFLAG,           required_argument, NULL,        TIMEOUT_FLAG},
+    {DEVICE_LFLAG,            required_argument, NULL,         DEVICE_FLAG},
+    {PACKETSIZE_LFLAG,        required_argument, NULL,     PACKETSIZE_FLAG},
+    {PACKET_FILESIZE_LFLAG,         no_argument, &send_filesize,      true},
+    {PACKET_NOFILESIZE_LFLAG,       no_argument, &send_filesize,     false},
+    {PACKET_FILENAME_LFLAG,         no_argument, &send_filename,      true},
+    {PACKET_NOFILENAME_LFLAG,       no_argument, &send_filename,     false},
     // end of options
     {0, 0, 0, 0}
     // format: {const char* lflag, int has_arg, int* flag, int val}
@@ -54,7 +56,7 @@ static const struct option long_options[] = {
 };
 
 // Enforce POSIX with leading +
-static const char* short_options = "Vhr:t:d:p:";
+static const char* short_options = "Vhr:a:t:d:p:";
 // x for no_argument, x: for required_argument,
 // x:: for optional_argument (GNU extension),
 // x; to transform  -x foo  into  --foo
@@ -67,27 +69,31 @@ static const wchar_t* version = L"FEUP RCOM 2018-2019\n"
     "\n";
 
 static const wchar_t* usage = L"usage: ll [option]... files...\n"
-    "Send one or more files through a device using a layered protocol.\n"
-    "\n"
-    "General:\n"
-    "      --help,           \n"
-    "      --usage           Show this message and exit\n"
-    "  -V, --version         Show 'version' message and exit\n"
-    "\n"
-    "Options:\n"
-    "  -r, --retries=N       Write reattempts for the link-layer.\n"
-    "                         Default is 3\n"
-    "  -t, --timeout=N       Read timeout for the link-layer, in ms.\n"
-    "                         Default is 1000ms\n"
-    "  -d, --device=S        Set the device to use.\n"
-    "                         Default is /dev/ttyS0\n"
-    "  -p, --packetsize=N    Set the packets' size in bytes for the app layer.\n"
-    "                         Default is 128\n"
-    "      --filesize,\n"
-    "      --no-filesize     Whether to send filesize in START packet.\n"
-    "      --filename,\n"
-    "      --no-filename     Whether to send filename in START packet.\n"
-    "                         Default is yes for both\n"
+    "Send one or more files through a device using a layered protocol.               \n"
+    "                                                                                \n"
+    "General:                                                                        \n"
+    "      --help,                                                                   \n"
+    "      --usage                  Show this message and exit                       \n"
+    "  -V, --version                Show 'version' message and exit                  \n"
+    "                                                                                \n"
+    "Options:                                                                        \n"
+    "  -r, --time-retries=N         Write stop & wait attempts for the link-layer    \n"
+    "                               when timeout occurs.                             \n"
+    "                                Default is 3                                    \n"
+    "  -a, --answer-retries=N       Write stop & wait attempts for the link-layer    \n"
+    "                               when an answer is invalid.                       \n"
+    "                                Default is 5                                    \n"
+    "  -t, --timeout=N              Read timeout for the link-layer, in ms.          \n"
+    "                                Default is 1000ms                               \n"
+    "  -d, --device=S               Set the device to use.                           \n"
+    "                                Default is /dev/ttyS0                           \n"
+    "  -p, --packetsize=N           Set the packets' size in bytes for the app layer.\n"
+    "                                Default is 128                                  \n"
+    "      --filesize,                                                               \n"
+    "      --no-filesize            Whether to send filesize in START packet.        \n"
+    "      --filename,                                                               \n"
+    "      --no-filename            Whether to send filename in START packet.        \n"
+    "                                Default is yes for both                         \n"
     "\n";
 
 /**
@@ -156,7 +162,7 @@ static int parse_ulong(const char* str, size_t* outp) {
     char* endp;
     long result = strtol(str, &endp, 10);
 
-    if (endp == str || errno == ERANGE || result >= ULONG_MAX || result <= 0) {
+    if (endp == str || errno == ERANGE || result <= 0) {
         return 1;
     } else {
         *outp = (size_t)result;
@@ -169,7 +175,8 @@ static void dump_options() {
         " show_help: %d\n"
         " show_usage: %d\n"
         " show_version: %d\n"
-        " retries: %d\n"
+        " time_retries: %d\n"
+        " answer_retries: %d\n"
         " timeout: %d\n"
         " device: %s\n"
         " packetsize: %lu\n"
@@ -178,8 +185,9 @@ static void dump_options() {
         " number_of_files: %d\n"
         " files: %x\n";
 
-    wprintf(dump_string, show_help, show_usage, show_version, retries, timeout,
-        device, packetsize, send_filesize, send_filename, number_of_files, files);
+    wprintf(dump_string, show_help, show_usage, show_version,
+        time_retries, answer_retries, timeout, device, packetsize,
+        send_filesize, send_filename, number_of_files, files);
 
     if (files != NULL) {
         for (size_t i = 0; i < number_of_files; ++i) {
@@ -234,9 +242,14 @@ int parse_args(int argc, char** argv) {
         case VERSION_FLAG:
             show_version = true;
             break;
-        case RETRIES_FLAG:
-            if (parse_int(optarg, &retries) != 0) {
-                print_badarg(RETRIES_LFLAG);
+        case TIME_RETRIES_FLAG:
+            if (parse_int(optarg, &time_retries) != 0) {
+                print_badarg(TIME_RETRIES_LFLAG);
+            }
+            break;
+        case ANSWER_RETRIES_FLAG:
+            if (parse_int(optarg, &answer_retries) != 0) {
+                print_badarg(ANSWER_RETRIES_LFLAG);
             }
             break;
         case TIMEOUT_FLAG:

@@ -33,11 +33,17 @@
 
 
 // <!--- OPTIONS
-// Set number of send retries for link-layer communications.
-#define RETRIES_FLAG 'r'
-#define RETRIES_LFLAG "retries"
-#define RETRIES_DEFAULT 3
-extern int retries;
+// Set number of send retries for link-layer communications, when the
+// receiver does not acknowledge the frame.
+#define TIME_RETRIES_FLAG 'r'
+#define TIME_RETRIES_LFLAG "time-retries"
+#define TIME_RETRIES_DEFAULT 5
+extern int time_retries;
+
+#define ANSWER_RETRIES_FLAG 'a'
+#define ANSWER_RETRIES_LFLAG "answer-retries"
+#define ANSWER_RETRIES_DEFAULT 3
+extern int answer_retries;
 
 // Set timeout in milliseconds for link-layer communications.
 #define TIMEOUT_FLAG 't'
