@@ -14,7 +14,7 @@ OBJECTS := $(SRC_OBJ)
 OUT := $(OUT_DIR)/ll
 
 CFLAGS := -std=gnu11 -Wall -Wextra -O2 -march=native
-CFLAGS += -Wno-switch -Wno-unused-function
+CFLAGS += -Wno-switch -Wno-unused-result -Wno-unused-parameter -Wno-unused-function
 LIBS := 
 INCLUDE := -I $(SRC_DIR)
 

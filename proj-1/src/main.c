@@ -3,6 +3,7 @@
 #include "ll-interface.h"
 #include "app-interface.h"
 #include "app-core.h"
+#include "signals.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -15,6 +16,8 @@ int main(int argc, char** argv) {
     int fd = setup_link_layer(device);
 
     int s = 0;
+
+    test_alarm();
 
     s = llopen(fd, TRANSMITTER);
 
