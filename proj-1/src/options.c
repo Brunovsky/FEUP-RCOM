@@ -321,8 +321,6 @@ int parse_args(int argc, char** argv) {
         do {
             files[i++] = strdup(argv[optind++]);
         } while (optind < argc);
-    } else {
-        print_numpositional(0);
     }
 
     if (DEBUG) dump_options();
