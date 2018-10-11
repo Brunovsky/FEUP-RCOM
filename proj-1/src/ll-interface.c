@@ -1,31 +1,50 @@
 #include "ll-interface.h"
 #include "ll-frames.h"
+#include "options.h"
 
-static size_t retries = 3;
+#include <stdlib.h>
 
 static int llopen_transmitter(int fd) {
-    writeSETframe(fd);
+    int time_count = 0;
 
-    frame f;
-    readFrame(fd, &f);
+    while (time_count < time_retries) {
+        writeSETframe(fd);
 
-    if (isUAframe(f)) {
-        return 0;
-    } else {
-        return 1;
+        frame f;
+        int s = readFrame(fd, &f);
+
+        if (s == FRAME_READ_TIMEOUT) {
+            ++time_count;
+            continue;
+        } else if (isUAframe(f)) {
+            return 0;
+        } else {
+            return 1;
+        }
     }
+
+    return 2;
 }
 
 static int llopen_receiver(int fd) {
-    frame f;
-    readFrame(fd, &f);
+    int time_count = 0;
 
-    if (isSETframe(f)) {
-        writeUAframe(fd);
-        return 0;
-    } else {
-        return 1;
+    while (time_count < time_retries) {
+        frame f;
+        int s = readFrame(fd, &f);
+
+        if (s == FRAME_READ_TIMEOUT) {
+            ++time_count;
+            continue;
+        } else if (isSETframe(f)) {
+            writeUAframe(fd);
+            return 0;
+        } else {
+            return 1;
+        }
     }
+
+    return 2;
 }
 
 int llopen(int fd, role_t role) {
@@ -37,40 +56,54 @@ int llopen(int fd, role_t role) {
 }
 
 static int llclose_transmitter(int fd) {
-    size_t count = 3;
+    int time_count = 0;
 
-    do {
+    while (time_count < time_retries) {
         writeDISCframe(fd);
 
         frame f;
-        readFrame(fd, &f);
+        int s = readFrame(fd, &f);
 
-        if (isDISCframe(f)) {
+        if (s == FRAME_READ_TIMEOUT) {
+            ++time_count;
+            continue;
+        } else if (isDISCframe(f)) {
             writeUAframe(fd);
-            return 0;
-        }
-    } while (++count < retries);
-
-    return 1;
-}
-
-static int llclose_receiver(int fd) {
-    frame f;
-    readFrame(fd, &f);
-
-    if (isDISCframe(f)) {
-        writeDISCframe(fd);
-
-        readFrame(fd, &f);
-
-        if (isUAframe(f)) {
             return 0;
         } else {
             return 1;
         }
-    } else {
-        return 1;
     }
+
+    return 2;
+}
+
+static int llclose_receiver(int fd) {
+    int time_count = 0;
+
+    while (time_count < time_retries) {
+        frame f;
+        int s = readFrame(fd, &f);
+
+        if (s == FRAME_READ_TIMEOUT) {
+            ++time_count;
+            continue;
+        } else if (isDISCframe(f)) {
+            writeDISCframe(fd);
+
+            readFrame(fd, &f);
+
+            if (isUAframe(f)) {
+                return 0;
+            } else {
+                return 3;
+            }
+        } else {
+            return 1;
+        }
+    }
+
+    return 2;
 }
 
 int llclose(int fd, role_t role) {
@@ -84,20 +117,34 @@ int llclose(int fd, role_t role) {
 int llwrite(int fd, char* message) {
     static int index = 0; // only supports one fd.
 
-    size_t count = 0;
+    int time_count = 0, answer_count = 0;
 
-    do {
+    while (time_count < time_retries && answer_count < answer_retries) {
         writeIframe(fd, message, index);
 
         frame f;
-        readFrame(fd, &f);
+        int s = readFrame(fd, &f);
 
-        if (isRRframe(f, index + 1)) {
-            return 0;
-        } else if (!isREJframe(f, index)) {
-            ++count;
+        switch (s) {
+        case FRAME_READ_OK:
+            if (isRRframe(f, index + 1) || isREJframe(f, index + 1)) {
+                ++index;
+                return 0;
+            } else if (isRRframe(f, index) || isREJframe(f, index)) {
+                ++answer_count;
+            } else {
+                // Incoherent behaviour
+                ++answer_count;
+            }
+            break;
+        case FRAME_READ_TIMEOUT:
+            ++time_count;
+            break;
+        case FRAME_READ_INVALID:
+            ++answer_count;
+            break;
         }
-    } while (count < retries);
+    }
 
     return 1;
 }
@@ -105,20 +152,32 @@ int llwrite(int fd, char* message) {
 int llread(int fd, char** messagep) {
     static int index = 0; // only supports one fd.
 
-    size_t count = 0;
+    int time_count = 0, answer_count = 0;
 
-    do {
+    while (time_count < time_retries && answer_count < answer_retries) {
         frame f;
-        readFrame(fd, &f);
+        int s = readFrame(fd, &f);
 
-        if (isIframe(f, index)) {
-            writeRRframe(fd, ++index);
-            *messagep = f.data;
-            return 0;
-        } else {
+        switch (s) {
+        case FRAME_READ_OK:
+            if (isIframe(f, index)) {
+                writeRRframe(fd, ++index);
+                *messagep = f.data;
+                return 0;
+            } else if (isIframe(f, index + 1)) {
+                writeRRframe(fd, index);
+                ++answer_count;
+            }
+            break;
+        case FRAME_READ_TIMEOUT:
+            ++time_count;
+            break;
+        case FRAME_READ_INVALID:
             writeREJframe(fd, index);
+            ++answer_count;
+            break;
         }
-    } while (count < retries);
+    }
 
     return 1;
 }

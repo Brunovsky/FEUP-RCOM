@@ -76,6 +76,14 @@ extern int send_filesize;
 #define PACKET_NOFILENAME_LFLAG "no-filename"
 #define PACKET_FILENAME_DEFAULT true
 extern int send_filename;
+
+// Define the behavior when answering incoherent acknowledgments
+#define INCOHERENT_CRASH "crash"
+#define INCOHERENT_CONTINUE "continue"
+#define INCOHERENT_FLAG 'i'
+#define INCOHERENT_LFLAG "incoherent"
+#define INCOHERENT_DEFAULT "crash"
+extern const char* incoherent;
 // ----> END OF OPTIONS
 
 

@@ -17,13 +17,14 @@ static int show_help = false; // h, help
 static int show_usage = false; // usage
 static int show_version = false; // V, version
 
-int time_retries = TIME_RETRIES_DEFAULT; // time-retries
-int answer_retries = ANSWER_RETRIES_DEFAULT; // answer-retries
+int time_retries = TIME_RETRIES_DEFAULT; // r, time-retries
+int answer_retries = ANSWER_RETRIES_DEFAULT; // a, answer-retries
 int timeout = TIMEOUT_DEFAULT; // t, timeout
 char* device = NULL; // d, device
 size_t packetsize = PACKETSIZE_DEFAULT; // p, packetsize
 int send_filesize = PACKET_FILESIZE_DEFAULT; // filesize, no-filesize
 int send_filename = PACKET_FILENAME_DEFAULT; // filename, no-filename
+const char* incoherent = NULL; // i, incoherent
 
 // Positional
 char** files = NULL;
@@ -47,6 +48,7 @@ static const struct option long_options[] = {
     {PACKET_NOFILESIZE_LFLAG,       no_argument, &send_filesize,     false},
     {PACKET_FILENAME_LFLAG,         no_argument, &send_filename,      true},
     {PACKET_NOFILENAME_LFLAG,       no_argument, &send_filename,     false},
+    {INCOHERENT_LFLAG,        required_argument, NULL,     INCOHERENT_FLAG},
     // end of options
     {0, 0, 0, 0}
     // format: {const char* lflag, int has_arg, int* flag, int val}
@@ -56,7 +58,7 @@ static const struct option long_options[] = {
 };
 
 // Enforce POSIX with leading +
-static const char* short_options = "Vhr:a:t:d:p:";
+static const char* short_options = "Vhr:a:t:d:p:i:";
 // x for no_argument, x: for required_argument,
 // x:: for optional_argument (GNU extension),
 // x; to transform  -x foo  into  --foo
@@ -94,6 +96,11 @@ static const wchar_t* usage = L"usage: ll [option]... files...\n"
     "      --filename,                                                               \n"
     "      --no-filename            Whether to send filename in START packet.        \n"
     "                                Default is yes for both                         \n"
+    "  -i, -incoherent=T            Define the link-layer's reader behavior when     \n"
+    "                               it receives an incoherent acknowledgement.       \n"
+    "                                  crash -- Crash the reader.                    \n"
+    "                                  continue -- Treat as another answer error.    \n"
+    "                                Default is crash\n"
     "\n";
 
 /**
@@ -101,6 +108,7 @@ static const wchar_t* usage = L"usage: ll [option]... files...\n"
  */
 static void clear_options() {
     free(device);
+    free(incoherent);
 
     for (size_t i = 0; i < number_of_files; ++i) {
         free(files[i]);
@@ -152,10 +160,10 @@ static int parse_int(const char* str, int* outp) {
 
     if (endp == str || errno == ERANGE || result >= INT_MAX || result <= INT_MIN) {
         return 1;
-    } else {
-        *outp = (int)result;
-        return 0;
     }
+
+    *outp = (int)result;
+    return 0;
 }
 
 static int parse_ulong(const char* str, size_t* outp) {
@@ -164,10 +172,19 @@ static int parse_ulong(const char* str, size_t* outp) {
 
     if (endp == str || errno == ERANGE || result <= 0) {
         return 1;
-    } else {
-        *outp = (size_t)result;
-        return 0;
     }
+
+    *outp = (size_t)result;
+    return 0;
+}
+
+static int parse_incoherent(const char* str, const char** outp) {
+    if (strcmp(str, INCOHERENT_CRASH) && strcmp(str, INCOHERENT_CONTINUE)) {
+        return 1;
+    }
+
+    *outp = strdup(str);
+    return 0;
 }
 
 static void dump_options() {
@@ -182,12 +199,13 @@ static void dump_options() {
         " packetsize: %lu\n"
         " send_filesize: %d\n"
         " send_filename: %d\n"
+        " incoherent: %s\n"
         " number_of_files: %d\n"
         " files: %x\n";
 
-    wprintf(dump_string, show_help, show_usage, show_version,
-        time_retries, answer_retries, timeout, device, packetsize,
-        send_filesize, send_filename, number_of_files, files);
+    wprintf(dump_string, show_help, show_usage, show_version, time_retries,
+        answer_retries, timeout, device, packetsize, send_filesize,
+        send_filename, incoherent, number_of_files, files);
 
     if (files != NULL) {
         for (size_t i = 0; i < number_of_files; ++i) {
@@ -265,6 +283,11 @@ int parse_args(int argc, char** argv) {
                 print_badarg(PACKETSIZE_LFLAG);
             }
             break;
+        case INCOHERENT_FLAG:
+            if (parse_incoherent(optarg, &incoherent) != 0) {
+                print_badarg(INCOHERENT_LFLAG);
+            }
+            break;
         case '?':
         default:
             // getopt_long already printed an error message.
@@ -282,6 +305,10 @@ int parse_args(int argc, char** argv) {
 
     if (device == NULL) {
         device = strdup(DEVICE_DEFAULT);
+    }
+
+    if (incoherent == NULL) {
+        incoherent = strdup(INCOHERENT_DEFAULT);
     }
 
     // Positional arguments processing
