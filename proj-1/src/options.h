@@ -54,7 +54,7 @@ extern int timeout;
 // Set device (presumably serial port) to use.
 #define DEVICE_FLAG 'd'
 #define DEVICE_LFLAG "device"
-#define DEVICE_DEFAULT "/dev/ttyS0"
+#define DEVICE_DEFAULT "/dev/ttyS1"
 extern char* device;
 
 // Set packet size, in bytes

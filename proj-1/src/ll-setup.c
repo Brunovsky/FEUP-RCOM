@@ -61,6 +61,7 @@ int setup_link_layer(const char* name) {
         exit(EXIT_FAILURE);
     }
 
+    if (DEBUG) printf("Setup link layer on %s\n", name);
     return fd;
 }
 
