@@ -1,4 +1,5 @@
 #include "signals.h"
+#include "options.h"
 #include "debug.h"
 
 #include <unistd.h>
@@ -125,6 +126,8 @@ void test_alarm() {
         printf("Failed test_alarm() -- sleep interrupted\n");
         exit(EXIT_FAILURE);
     }
+
+    unset_alarm();
 
     if (DEBUG) printf("Passed test_alarm()\n");
 }
