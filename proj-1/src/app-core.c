@@ -14,7 +14,7 @@
 
 #define FILESIZE_TLV_N         0
 #define FILENAME_TLV_N         1
-
+/*
 static int make_data_packet(const char* packet, char index, char** outp) {
     size_t packet_len = strlen(packet);
 
@@ -108,3 +108,4 @@ int send_end_packet(int fd) {
 
     return 0;
 }
+*/

@@ -88,6 +88,6 @@ extern const char* incoherent;
 
 
 
-int parse_args(int argc, char** argv);
+void parse_args(int argc, char** argv);
 
 #endif // OPTIONS_H___

@@ -106,7 +106,7 @@ int llopen(int fd, role_t role) {
     }
 }
 
-int llwrite(int fd, char* message) {
+int llwrite(int fd, string message) {
     static int index = 0; // only supports one fd.
 
     int time_count = 0, answer_count = 0;
@@ -141,7 +141,7 @@ int llwrite(int fd, char* message) {
     return 1;
 }
 
-int llread(int fd, char** messagep) {
+int llread(int fd, string* messagep) {
     static int index = 0; // only supports one fd.
 
     int time_count = 0, answer_count = 0;

@@ -234,7 +234,7 @@ static int parse_incoherent(const char* str, const char** outp) {
  * Standard unix main's argument parsing function. Allocates resources
  * that are automatically freed at exit.
  */
-int parse_args(int argc, char** argv) {
+void parse_args(int argc, char** argv) {
     // Uncomment to disable auto-generated error messages for options:
     // opterr = 0;
 
@@ -334,6 +334,4 @@ int parse_args(int argc, char** argv) {
     }
 
     if (DEBUG) dump_options();
-
-    return 0;
 }

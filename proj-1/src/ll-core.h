@@ -1,6 +1,8 @@
 #ifndef LL_CORE_H___
 #define LL_CORE_H___
 
+#include "strings.h"
+
 #include <stddef.h>
 
 #define FRAME_READ_OK       0x00
@@ -9,7 +11,7 @@
 
 typedef struct {
     char a, c;
-    char* data;
+    string data;
 } frame;
 
 int writeFrame(int fd, frame f);

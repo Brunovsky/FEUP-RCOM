@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-/*
+
 // Transmitter
 int main(int argc, char** argv) {
     parse_args(argc, argv);
@@ -79,4 +79,3 @@ int main(int argc, char** argv) {
 
     return 0;
 }
-*/

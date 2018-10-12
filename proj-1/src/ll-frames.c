@@ -18,40 +18,40 @@
 bool isIframe(frame f, int parity) {
 	return f.a == FRAME_A_COMMAND &&
 	       f.c == (parity % 2) &&
-	       f.data != NULL;
+	       f.data.s != NULL && f.data.len > 0;
 }
 
 bool isSETframe(frame f) {
 	return f.a == FRAME_A_COMMAND &&
 	       f.c == FRAME_C_SET &&
-	       f.data == NULL;
+	       f.data.s == NULL;
 }
 
 bool isDISCframe(frame f) {
 	return f.a == FRAME_A_COMMAND &&
 	       f.c == FRAME_C_DISC &&
-	       f.data == NULL;
+	       f.data.s == NULL;
 }
 
 bool isUAframe(frame f) {
 	return f.a == FRAME_A_RESPONSE &&
 	       f.c == FRAME_C_UA &&
-	       f.data == NULL;
+	       f.data.s == NULL;
 }
 
 bool isRRframe(frame f, int parity) {
 	return f.a == FRAME_A_RESPONSE &&
 	       f.c == FRAME_C_RR(parity) &&
-	       f.data == NULL;
+	       f.data.s == NULL;
 }
 
 bool isREJframe(frame f, int parity) {
 	return f.a == FRAME_A_RESPONSE &&
 	       f.c == FRAME_C_REJ(parity) &&
-	       f.data == NULL;
+	       f.data.s == NULL;
 }
 
-int writeIframe(int fd, char* message, int index) {
+int writeIframe(int fd, string message, int index) {
 	frame f = {
 		.a = FRAME_A_COMMAND,
 		.c = index % 2,
@@ -65,7 +65,7 @@ int writeSETframe(int fd) {
 	frame f = {
 		.a = FRAME_A_COMMAND,
 		.c = FRAME_C_SET,
-		.data = NULL
+		.data = {NULL, 0}
 	};
 
 	return writeFrame(fd, f);
@@ -75,7 +75,7 @@ int writeDISCframe(int fd) {
 	frame f = {
 		.a = FRAME_A_COMMAND,
 		.c = FRAME_C_DISC,
-		.data = NULL
+		.data = {NULL, 0}
 	};
 
 	return writeFrame(fd, f);
@@ -85,7 +85,7 @@ int writeUAframe(int fd) {
 	frame f = {
 		.a = FRAME_A_RESPONSE,
 		.c = FRAME_C_UA,
-		.data = NULL
+		.data = {NULL, 0}
 	};
 
 	return writeFrame(fd, f);
@@ -95,7 +95,7 @@ int writeRRframe(int fd, int parity) {
 	frame f = {
 		.a = FRAME_A_RESPONSE,
 		.c = FRAME_C_RR(parity),
-		.data = NULL
+		.data = {NULL, 0}
 	};
 
 	return writeFrame(fd, f);
@@ -105,7 +105,7 @@ int writeREJframe(int fd, int parity) {
 	frame f = {
 		.a = FRAME_A_RESPONSE,
 		.c = FRAME_C_REJ(parity),
-		.data = NULL
+		.data = {NULL, 0}
 	};
 
 	return writeFrame(fd, f);

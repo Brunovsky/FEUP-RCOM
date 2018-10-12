@@ -30,142 +30,153 @@ typedef enum {
     READ_PRE_FRAME, READ_START_FLAG, READ_WITHIN_FRAME, READ_END_FLAG
 } FrameReadState;
 
-static int stuffData(char* in, char** outp, char* bcc2) {
-    size_t len = strlen(in);
+static int stuffData(string in, string* outp, char* bcc2) {
     size_t count = 0;
 
-    for (size_t i = 0; i < len; ++i) {
-        if (in[i] == FRAME_ESC || in[i] == FRAME_FLAG) {
+    for (size_t i = 0; i < in.len; ++i) {
+        if (in.s[i] == FRAME_ESC || in.s[i] == FRAME_FLAG) {
             ++count;
         }
     }
 
-    size_t out_len = len + count;
-    char* buf = malloc((out_len + 1) * sizeof(char));
+    string stuffed_data;
+
+    stuffed_data.len = in.len + count;
+    stuffed_data.s = malloc((stuffed_data.len + 1) * sizeof(char));
 
     char parity = 0;
 
-    for (size_t i = 0, j = 0; i < len; ++i, ++j) {
-        switch (in[i]) {
+    for (size_t i = 0, j = 0; i < in.len; ++i, ++j) {
+        switch (in.s[i]) {
         case FRAME_FLAG:
-            buf[j++] = FRAME_ESC;
-            buf[j] = FRAME_FLAG_STUFFING;
+            stuffed_data.s[j++] = FRAME_ESC;
+            stuffed_data.s[j] = FRAME_FLAG_STUFFING;
             break;
         case FRAME_ESC:
-            buf[j++] = FRAME_ESC;
-            buf[j] = FRAME_ESC_STUFFING;
+            stuffed_data.s[j++] = FRAME_ESC;
+            stuffed_data.s[j] = FRAME_ESC_STUFFING;
             break;
         default:
-            buf[j] = in[i];
+            stuffed_data.s[j] = in.s[i];
         }
 
-        parity ^= buf[j];
+        parity ^= stuffed_data.s[j];
     }
 
-    buf[out_len] = '\0';
+    stuffed_data.s[stuffed_data.len] = '\0';
 
-    *outp = buf;
+    *outp = stuffed_data;
     *bcc2 = parity;
     return 0;
 }
 
-static int destuffData(char* in, char** outp, char* bcc2) {
-    size_t len = strlen(in);
+static int destuffData(string in, string* outp, char* bcc2) {
     size_t count = 0;
 
-    for (size_t i = 0; i < len; ++i) {
-        if (in[i] == FRAME_ESC) {
+    for (size_t i = 0; i < in.len; ++i) {
+        if (in.s[i] == FRAME_ESC) {
             ++count;
         }
     }
 
-    size_t out_len = len - count;
-    char* buf = malloc((out_len + 1) * sizeof(char));
+    string destuffed_data;
+
+    destuffed_data.len = in.len - count;
+    destuffed_data.s = malloc((destuffed_data.len + 1) * sizeof(char));
 
     char parity = 0;
 
-    for (size_t i = 0, j = 0; i < len; ++i, ++j) {
-        if (in[i] == FRAME_ESC) {
-            switch (in[++i]) {
+    for (size_t i = 0, j = 0; i < in.len; ++i, ++j) {
+        if (in.s[i] == FRAME_ESC) {
+            switch (in.s[++i]) {
             case FRAME_FLAG_STUFFING:
-                buf[j] = FRAME_FLAG;
+                destuffed_data.s[j] = FRAME_FLAG;
                 break;
             case FRAME_ESC_STUFFING:
-                buf[j] = FRAME_ESC;
+                destuffed_data.s[j] = FRAME_ESC;
                 break;
             default:
-                free(buf);
+                free(destuffed_data.s);
                 return FRAME_READ_BAD_ESCAPE;
             }
         } else {
-            buf[j] = in[i];
+            destuffed_data.s[j] = in.s[i];
         }
 
-        parity ^= buf[j];
+        parity ^= destuffed_data.s[j];
     }
 
-    buf[out_len] = '\0';
+    destuffed_data.s[destuffed_data.len] = '\0';
 
-    *outp = buf;
+    *outp = destuffed_data;
     *bcc2 = parity;
     return 0;
 }
 
-static int destuffText(char* text, char** outp, char* bcc2) {
-    size_t data_len = strlen(text) - 6;
+static int destuffText(string text, string* outp, char* bcc2) {
+    string data;
 
-    char* tmp = malloc((data_len + 1) * sizeof(char));
+    data.len = text.len - 6;
+    data.s = malloc((data.len + 1) * sizeof(char));
 
-    strncpy(tmp, text + 4, data_len);
-    tmp[data_len] = '\0';
+    strncpy(data.s, text.s + 4, data.len);
+    data.s[data.len] = '\0';
 
-    int s = destuffData(tmp, outp, bcc2);
+    int s = destuffData(data, outp, bcc2);
 
-    free(tmp);
+    free(data.s);
     return s;
 }
 
-static int buildText(frame f, char** textp) {
-    if (f.data == NULL) {
+static int buildText(frame f, string* textp) {
+    if (f.data.s == NULL) {
         // S or U frame (control frame)
-        char* buf = malloc(6 * sizeof(char));
+        string text;
 
-        buf[0] = FRAME_FLAG;
-        buf[1] = f.a;
-        buf[2] = f.c;
-        buf[3] = f.a ^ f.c;
-        buf[4] = FRAME_FLAG;
-        buf[5] = '\0';
+        text.len = 5;
+        text.s = malloc(6 * sizeof(char));
 
-        *textp = buf;
+        text.s[0] = FRAME_FLAG;
+        text.s[1] = f.a;
+        text.s[2] = f.c;
+        text.s[3] = f.a ^ f.c;
+        text.s[4] = FRAME_FLAG;
+        text.s[5] = '\0';
+
+        *textp = text;
         return 0;
     } else {
         // I frame (data frame)
-        char* stuffed_data;
+        string stuffed_data;
         char bcc2;
         stuffData(f.data, &stuffed_data, &bcc2);
 
-        size_t text_len = strlen(stuffed_data) + 6;
-        char* buf = malloc((text_len + 1) * sizeof(char));
+        string text;
 
-        buf[0] = FRAME_FLAG;
-        buf[1] = f.a;
-        buf[2] = f.c;
-        buf[3] = f.a ^ f.c;
-        strncpy(buf + 4, stuffed_data, strlen(stuffed_data));
-        buf[text_len - 2] = bcc2;
-        buf[text_len - 1] = FRAME_FLAG;
-        buf[text_len] = '\0';
+        text.len = stuffed_data.len + 6;
+        text.s = malloc((text.len + 1) * sizeof(char));
 
-        *textp = buf;
+        text.s[0] = FRAME_FLAG;
+        text.s[1] = f.a;
+        text.s[2] = f.c;
+        text.s[3] = f.a ^ f.c;
+        strncpy(text.s + 4, stuffed_data.s, stuffed_data.len);
+        text.s[text.len - 2] = bcc2;
+        text.s[text.len - 1] = FRAME_FLAG;
+        text.s[text.len] = '\0';
+
+        *textp = text;
         return 0;
     }
 }
 
-static int readText(int fd, char** textp) {
-    char* buf = malloc(8 * sizeof(char));
+static int readText(int fd, string* textp) {
+    string text;
+
+    text.len = 0;
+    text.s = malloc(8 * sizeof(char));
+
     size_t reserved = 8;
-    size_t j = 0;
 
     FrameReadState state = READ_PRE_FRAME;
 
@@ -178,80 +189,81 @@ static int readText(int fd, char** textp) {
         case READ_PRE_FRAME:
             if (c == FRAME_FLAG) {
                 state = READ_START_FLAG;
-                buf[j++] = FRAME_FLAG;
+                text.s[text.len++] = FRAME_FLAG;
             }
             break;
         case READ_START_FLAG:
             if (c != FRAME_FLAG) {
                 state = READ_WITHIN_FRAME;
-                buf[j++] = c;
+                text.s[text.len++] = c;
             }
             break;
         case READ_WITHIN_FRAME:
             if (c == FRAME_FLAG) {
                 state = READ_END_FLAG;
-                buf[j++] = FRAME_FLAG;
+                text.s[text.len++] = FRAME_FLAG;
             } else {
-                buf[j++] = c;
+                text.s[text.len++] = c;
             }
+            break;
+        case READ_END_FLAG:
+        default:
             break;
         }
 
-        if ((j + 1) == reserved) {
-            buf = realloc(buf, reserved * 2);
+        if ((text.len + 1) == reserved) {
+            text.s = realloc(text.s, reserved * 2);
             reserved *= 2;
         }
     }
 
-    buf[j++] = '\0';
+    text.s[text.len] = '\0';
 
-    *textp = buf;
+    *textp = text;
     return 0;
 }
 
 int writeFrame(int fd, frame f) {
-    char* text;
+    string text;
     buildText(f, &text);
 
-    write(fd, text, strlen(text));
-    free(text);
+    write(fd, text.s, text.len);
+    free(text.s);
     return 0;
 }
 
 int readFrame(int fd, frame* fp) {
-    char* text;
+    string text;
     readText(fd, &text);
 
-    size_t text_len = strlen(text);
-
-    if (text_len < 5 || text_len == 6) {
-        free(text);
+    if (text.len < 5 || text.len == 6) {
+        free(text.s);
         return FRAME_READ_BAD_LENGTH;
     }
 
     frame f = {
-        .a = text[0],
-        .c = text[1],
-        .data = NULL
+        .a = text.s[1],
+        .c = text.s[2],
+        .data = {NULL, 0}
     };
 
-    char bcc1 = text[2];
+    char bcc1 = text.s[3];
 
     if (bcc1 != (f.a ^ f.c)) {
-        free(text);
+        free(text.s);
         return FRAME_READ_BAD_BCC1;
     }
 
-    if (text_len > 6) {
-        char* data = NULL;
+    if (text.len > 6) {
+        string data;
         char bcc2;
         int s = destuffText(text, &data, &bcc2);
 
         if (s != 0) return s;
 
-        if (bcc2 != text[text_len - 2]) {
-            free(text);
-            free(data);
+        if (bcc2 != text.s[text.len - 2]) {
+            free(text.s);
+            free(data.s);
             return FRAME_READ_BAD_BCC2;
         }
 
@@ -260,6 +272,6 @@ int readFrame(int fd, frame* fp) {
 
     *fp = f;
 
-    free(text);
+    free(text.s);
     return 0;
 }

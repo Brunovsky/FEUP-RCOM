@@ -2,6 +2,7 @@
 #define LL_FRAMES_H___
 
 #include "ll-core.h"
+#include "strings.h"
 
 #include <stddef.h>
 #include <stdbool.h>
@@ -19,7 +20,7 @@ bool isRRframe(frame f, int parity);
 bool isREJframe(frame f, int parity);
 
 
-int writeIframe(int fd, char* message, int index);
+int writeIframe(int fd, string message, int index);
 
 int writeSETframe(int fd);
 
