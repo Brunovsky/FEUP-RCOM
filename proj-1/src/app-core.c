@@ -14,98 +14,104 @@
 
 #define FILESIZE_TLV_N         0
 #define FILENAME_TLV_N         1
-/*
-static int make_data_packet(const char* packet, char index, char** outp) {
-    size_t packet_len = strlen(packet);
 
-    if (packet_len > 0xffff) return 1;
+static int make_data_packet(string fragment, char index, string* outp) {
+    if (fragment.len > 0xfffflu) return 1;
 
-    char* data = malloc((packet_len + 5) * sizeof(char));
+    string data_packet;
 
-    data[0] = PCONTROL_DATA;
-    data[1] = index;
-    data[2] = packet_len / 256lu;
-    data[3] = packet_len % 256lu;
-    strncpy(data + 4, packet, packet_len + 1);
+    data_packet.len = fragment.len + 4;
+    data_packet.s = malloc((data_packet.len + 1) * sizeof(char));
 
-    *outp = data;
+    data_packet.s[0] = PCONTROL_DATA;
+    data_packet.s[1] = index;
+    data_packet.s[2] = packet.len / 256lu;
+    data_packet.s[3] = packet.len % 256lu;
+    strncpy(data_packet.s + 4, fragment.s, fragment.len + 1);
+
+    *outp = data_packet;
     return 0;
 }
 
-static int make_tlv_str(char type, const char* value, char** outp) {
-    size_t len = strlen(value);
+static int make_tlv_str(char type, string value, string* outp) {
+    if (value.len > 0xfflu) return 1;
 
-    if (len > 0xff) return 1;
+    string tlv;
 
-    char* tlv = malloc((len + 3) * sizeof(char));
+    tlv.len = value.len + 2;
+    tlv.s = malloc((tlv.len + 3) * sizeof(char));
 
-    tlv[0] = type;
-    tlv[1] = len;
-    strncpy(tlv + 2, value, len + 1);
+    tlv.s[0] = type;
+    tlv.s[1] = len;
+    strncpy(tlv.s + 2, value.s, value.len + 1);
 
     *outp = tlv;
     return 0;
 }
 
-static int make_tlv_int(char type, long unsigned value, char** outp) {
-    char buf[9];
-    sprintf(buf, "%lu", value);
+static int make_tlv_uint(char type, long unsigned value, string* outp) {
+    char buf[10];
+    string value;
+    value.s = buf;
+    sprintf(value.s, "%lu", value);
+    value.len = strlen(value.s);
     return make_tlv_str(type, buf, outp);
 }
 
-static int make_control_packet(char control, char** tlvp, size_t n, char** outp) {
-    size_t data_len = 1;
+static int make_control_packet(char control, string* tlvp, size_t n, string* outp) {
+    string control_packet;
+    control_packet.len = 1;
 
     for (size_t i = 0; i < n; ++i) {
-        data_len += strlen(tlvp[i]);
+        control_packet.len += strlen(tlvp[i]);
     }
 
-    char* data = malloc((data_len + 1) * sizeof(char));
-    char* tmp = data + 1;
+    control_packet.s = malloc((control_packet.len + 1) * sizeof(char));
+    char* tmp = control_packet.s + 1;
 
-    data[0] = control;
-    data[1] = '\0';
+    control_packet.s[0] = control;
+    control_packet.s[1] = '\0';
 
     for (size_t i = 0; i < n; ++i) {
-        tmp = stpncpy(tmp, tlvp[i], strlen(tlvp[i]));
+        tmp = stpncpy(tmp, tlvp[i].s, tlvp[i].len);
     }
 
-    *outp = data;
+    *outp = control_packet;
     return 0;
 }
 
-int send_data_packet(int fd, const char* packet) {
+int send_data_packet(int fd, string packet) {
     static size_t index = 0; // only supports one fd.
 
-    char* data = NULL;
-    make_data_packet(packet, index % 256lu, &data);
+    string data_packet;
+    make_data_packet(packet, index % 256lu, &data_packet);
 
-    llwrite(fd, data);
+    llwrite(fd, data_packet);
 
-    free(data);
+    free(data_packet.s);
     return 0;
 }
 
 int send_start_packet(int fd, size_t filesize, const char* filename) {
-    char* tlvs[2];
+    string tlvs[2];
 
-    make_tlv_int(PCONTROL_TYPE_FILESIZE, filesize, tlvs + FILESIZE_TLV_N);
+    make_tlv_uint(PCONTROL_TYPE_FILESIZE, filesize, tlvs + FILESIZE_TLV_N);
     make_tlv_str(PCONTROL_TYPE_FILENAME, filename, tlvs + FILENAME_TLV_N);
 
-    char* data = NULL;
-    make_control_packet(PCONTROL_START, tlvs, 2, &data);
+    string start_packet;
+    make_control_packet(PCONTROL_START, tlvs, 2, &start_packet);
 
-    llwrite(fd, data);
+    llwrite(fd, start_packet);
 
-    free(data);
+    free(start_packet.s);
     return 0;
 }
 
 int send_end_packet(int fd) {
-    char data[2] = {PCONTROL_END, '\0'};
+    static char data[2] = {PCONTROL_END, '\0'};
+    string end_packet = {data, 1};
 
-    llwrite(fd, data);
+    llwrite(fd, end_packet);
 
     return 0;
 }
-*/

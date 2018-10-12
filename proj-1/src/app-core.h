@@ -3,7 +3,7 @@
 
 #include <stddef.h>
 
-int send_data_packet(int fd, const char* packet);
+int send_data_packet(int fd, string packet);
 
 int send_start_packet(int fd, size_t filesize, const char* filename);
 
