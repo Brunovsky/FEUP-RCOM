@@ -8,4 +8,8 @@ typedef struct {
     size_t len;
 } string;
 
+void free_string(string str);
+
+string string_from(char* str);
+
 #endif // STRINGS_H___

@@ -20,7 +20,7 @@ static int show_version = false; // V, version
 int time_retries = TIME_RETRIES_DEFAULT; // r, time-retries
 int answer_retries = ANSWER_RETRIES_DEFAULT; // a, answer-retries
 int timeout = TIMEOUT_DEFAULT; // t, timeout
-char* device = NULL; // d, device
+char* device = DEVICE_DEFAULT; // d, device
 size_t packetsize = PACKETSIZE_DEFAULT; // p, packetsize
 int send_filesize = PACKET_FILESIZE_DEFAULT; // filesize, no-filesize
 int send_filename = PACKET_FILENAME_DEFAULT; // filename, no-filename
@@ -107,8 +107,6 @@ static const wchar_t* usage = L"usage: ll [option]... files...\n"
  * Free all resources allocated to contain options by parse_args.
  */
 static void clear_options() {
-    free(device);
-
     for (size_t i = 0; i < number_of_files; ++i) {
         free(files[i]);
     }
@@ -240,11 +238,6 @@ void parse_args(int argc, char** argv) {
 
     atexit(clear_options);
 
-    // If there are no args, print usage and version messages and exit
-    if (argc == 1) {
-        print_all();
-    }
-
     // Standard getopt_long Options Loop
     while (true) {
         int c, lindex = 0;
@@ -290,7 +283,7 @@ void parse_args(int argc, char** argv) {
             }
             break;
         case DEVICE_FLAG:
-            device = strdup(optarg);
+            device = optarg;
             break;
         case PACKETSIZE_FLAG:
             if (parse_ulong(optarg, &packetsize) != 0) {
@@ -315,10 +308,6 @@ void parse_args(int argc, char** argv) {
 
     if (show_version) {
         print_version();
-    }
-
-    if (device == NULL) {
-        device = strdup(DEVICE_DEFAULT);
     }
 
     // Positional arguments processing

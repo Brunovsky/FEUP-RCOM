@@ -10,7 +10,7 @@
 #include <string.h>
 #include <stdio.h>
 
-const char* m = "Ate logo lol";
+char* m = "Ate logo lol";
 
 // Transmitter
 int main(int argc, char** argv) {
@@ -23,7 +23,7 @@ int main(int argc, char** argv) {
     test_alarm();
 
     string message = {m, strlen(m)};
-    writeIframe(fd, message);
+    writeIframe(fd, message, 1);
 
     reset_link_layer(fd);
 

@@ -25,8 +25,8 @@ static int make_data_packet(string fragment, char index, string* outp) {
 
     data_packet.s[0] = PCONTROL_DATA;
     data_packet.s[1] = index;
-    data_packet.s[2] = packet.len / 256lu;
-    data_packet.s[3] = packet.len % 256lu;
+    data_packet.s[2] = fragment.len / 256lu;
+    data_packet.s[3] = fragment.len % 256lu;
     strncpy(data_packet.s + 4, fragment.s, fragment.len + 1);
 
     *outp = data_packet;
@@ -42,7 +42,7 @@ static int make_tlv_str(char type, string value, string* outp) {
     tlv.s = malloc((tlv.len + 3) * sizeof(char));
 
     tlv.s[0] = type;
-    tlv.s[1] = len;
+    tlv.s[1] = (unsigned char)tlv.len;
     strncpy(tlv.s + 2, value.s, value.len + 1);
 
     *outp = tlv;
@@ -51,11 +51,11 @@ static int make_tlv_str(char type, string value, string* outp) {
 
 static int make_tlv_uint(char type, long unsigned value, string* outp) {
     char buf[10];
-    string value;
-    value.s = buf;
-    sprintf(value.s, "%lu", value);
-    value.len = strlen(value.s);
-    return make_tlv_str(type, buf, outp);
+    string tmp;
+    tmp.s = buf;
+    sprintf(tmp.s, "%lu", value);
+    tmp.len = strlen(tmp.s);
+    return make_tlv_str(type, tmp, outp);
 }
 
 static int make_control_packet(char control, string* tlvp, size_t n, string* outp) {
@@ -63,7 +63,7 @@ static int make_control_packet(char control, string* tlvp, size_t n, string* out
     control_packet.len = 1;
 
     for (size_t i = 0; i < n; ++i) {
-        control_packet.len += strlen(tlvp[i]);
+        control_packet.len += tlvp[i].len;
     }
 
     control_packet.s = malloc((control_packet.len + 1) * sizeof(char));
@@ -92,11 +92,11 @@ int send_data_packet(int fd, string packet) {
     return 0;
 }
 
-int send_start_packet(int fd, size_t filesize, const char* filename) {
+int send_start_packet(int fd, size_t filesize, char* filename) {
     string tlvs[2];
 
     make_tlv_uint(PCONTROL_TYPE_FILESIZE, filesize, tlvs + FILESIZE_TLV_N);
-    make_tlv_str(PCONTROL_TYPE_FILENAME, filename, tlvs + FILENAME_TLV_N);
+    make_tlv_str(PCONTROL_TYPE_FILENAME, string_from(filename), tlvs + FILENAME_TLV_N);
 
     string start_packet;
     make_control_packet(PCONTROL_START, tlvs, 2, &start_packet);
