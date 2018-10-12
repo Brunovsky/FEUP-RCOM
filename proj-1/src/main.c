@@ -26,7 +26,10 @@ int main(int argc, char** argv) {
         printf("Failed llopen %d\n", s);
     }
 
-    s = llwrite(fd, "Ate logo caralho");
+    char* message = "Ate logo lol";
+    string str = {message, strlen(message)};
+
+    s = llwrite(fd, str);
 
     if (s != 0) {
         printf("Failed llwrite %d\n", s);
@@ -43,7 +46,7 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-
+/*
 // Receiver
 int main(int argc, char** argv) {
     parse_args(argc, argv);
@@ -58,13 +61,13 @@ int main(int argc, char** argv) {
         printf("Failed llopen %d\n", s);
     }
 
-    char* buf;
+    string buf;
     s = llread(fd, &buf);
 
     if (s != 0) {
         printf("Failed llwrite %d\n", s);
     } else {
-        printf("Mensagem: %s\n", buf);
+        printf("Mensagem: %s\n", buf.s);
     }
 
     s = llclose(fd, RECEIVER);
@@ -79,3 +82,4 @@ int main(int argc, char** argv) {
 
     return 0;
 }
+*/
