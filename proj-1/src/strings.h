@@ -10,4 +10,8 @@ typedef struct {
 
 string string_from(char* str);
 
+void print_string(string str);
+
+void print_stringn(string str);
+
 #endif // STRINGS_H___

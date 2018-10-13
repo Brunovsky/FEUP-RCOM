@@ -1,4 +1,4 @@
-.PHONY: obj all clean createbin
+.PHONY: all clean createbin debug
 
 CC := gcc
 
@@ -13,17 +13,15 @@ OBJECTS := $(SRC_OBJ)
 
 OUT := $(OUT_DIR)/ll
 
-CFLAGS := -std=gnu11 -Wall -Wextra -O2 -march=native
+CFLAGS := -std=gnu11 -Wall -Wextra -march=native -g
 CFLAGS += -Wno-switch -Wno-unused-result -Wno-unused-parameter -Wno-unused-function
 LIBS := 
 INCLUDE := -I $(SRC_DIR)
 
 
 
-all: clean obj
+all: clean createbin $(OBJECTS)
 	$(CC) $(CFLAGS) $(INCLUDE) -o $(OUT) $(OBJECTS) $(LIBS)
-
-obj: createbin $(OBJECTS)
 
 createbin:
 	@mkdir -p bin

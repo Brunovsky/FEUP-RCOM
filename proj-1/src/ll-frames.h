@@ -4,7 +4,6 @@
 #include "ll-core.h"
 #include "strings.h"
 
-#include <stddef.h>
 #include <stdbool.h>
 
 bool isIframe(frame f, int parity);

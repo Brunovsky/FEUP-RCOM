@@ -4,5 +4,6 @@
 #include <assert.h>
 
 #define DEBUG 1
+#define DEEP_DEBUG 0
 
 #endif // DEBUG_H___

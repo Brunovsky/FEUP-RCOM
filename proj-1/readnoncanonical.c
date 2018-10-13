@@ -16,29 +16,27 @@
 
 volatile int STOP=FALSE;
 
-int main(int argc, char** argv)
-{
-    int fd, res = 0;
+int main(int argc, char** argv) {
     struct termios oldtio, newtio;
 
-    if ( (argc < 2) ||
-  	     ((strcmp("/dev/ttyS0", argv[1])!=0) &&
-  	      (strcmp("/dev/ttyS1", argv[1])!=0) )) {
-      printf("Usage:\tnserial SerialPort\n\tex: nserial /dev/ttyS1\n");
+    if (argc < 2) {
       exit(1);
     }
 
-  /*
-    Open serial port device for reading and writing and not as controlling tty
-    because we don't want to get killed if linenoise sends CTRL-C.
-  */
+    /*
+      Open serial port device for reading and writing and not as controlling tty
+      because we don't want to get killed if linenoise sends CTRL-C.
+    */
 
-    fd = open(argv[1], O_RDWR | O_NOCTTY );
-    if (fd <0) {perror(argv[1]); exit(-1); }
+    int fd = open(argv[1], O_RDWR | O_NOCTTY );
+    if (fd < 0) {
+      perror(argv[1]);
+      exit(1);
+    }
 
-    if ( tcgetattr(fd,&oldtio) == -1) { /* save current port settings */
+    if (tcgetattr(fd,&oldtio) == -1) { /* save current port settings */
       perror("tcgetattr");
-      exit(-1);
+      exit(1);
     }
 
     bzero(&newtio, sizeof(newtio));
@@ -49,13 +47,8 @@ int main(int argc, char** argv)
     /* set input mode (non-canonical, no echo,...) */
     newtio.c_lflag = 0;
 
-    newtio.c_cc[VTIME]    = 1;   /* inter-character timer unused */
-    newtio.c_cc[VMIN]     = 0;   /* blocking read until 5 chars received */
-
-  /*
-    VTIME e VMIN devem ser alterados de forma a proteger com um temporizador a
-    leitura do(s) proximo(s) caracter(es)
-  */
+    newtio.c_cc[VTIME] = 1;   /* inter-character timer unused */
+    newtio.c_cc[VMIN] = 0;   /* blocking read until 0 chars received */
 
     tcflush(fd, TCIOFLUSH);
 
@@ -64,31 +57,34 @@ int main(int argc, char** argv)
       exit(-1);
     }
 
-    /*
-    Emptying out all the buffers
-    */
-    fflush(NULL);
-
     printf("New termios structure set\n");
 
-    unsigned i = 0;
-    char buf[256];
+    fflush(NULL);
 
-    while (STOP==FALSE) {
-      res = read(fd,buf+i,1);
+    unsigned i = 0;
+    char buf[16384];
+    ssize_t res = 0;
+
+    while (STOP == FALSE) {
+      res = read(fd, buf + i, 1);
       if (res > 0) {
+          printf("Read  %c  %d\n", buf[i], (int)buf[i]);
           if (buf[i++] == '\0') {
             STOP = TRUE;
           }
-      }
+      } else if (res < 0) {
+            perror("res < 0 --");
+        }
     }
 
     printf(":%s:%d\n", buf, i);
 
     fflush(NULL);
-    sleep(1);
+    sleep(2);
 
-    res = write(fd,buf,strlen(buf)+1);
+    res = write(fd, buf, strlen(buf) + 1);
+    printf("%ld bytes written\nFinished\n", res);
+    sleep(1);
 
     tcsetattr(fd,TCSANOW,&oldtio);
     close(fd);

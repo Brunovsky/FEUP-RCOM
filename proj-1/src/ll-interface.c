@@ -1,8 +1,10 @@
 #include "ll-interface.h"
 #include "ll-frames.h"
 #include "options.h"
+#include "debug.h"
 
 #include <stdlib.h>
+#include <stdio.h>
 
 static int llopen_transmitter(int fd) {
     int time_count = 0;

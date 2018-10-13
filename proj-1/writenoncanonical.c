@@ -10,23 +10,17 @@
 #include <string.h>
 
 #define BAUDRATE B38400
-#define MODEMDEVICE "/dev/ttyS1"
-#define _POSIX_SOURCE 1 /* POSIX compliant source */
 #define FALSE 0
 #define TRUE 1
 
-volatile int STOP=FALSE;
+volatile int STOP = FALSE;
 
-int main(int argc, char** argv)
-{
-    int fd, res;
+int main(int argc, char** argv) {
     struct termios oldtio, newtio;
 
-    if ( (argc < 2) ||
-  	     ((strcmp("/dev/ttyS0", argv[1])!=0) &&
-  	      (strcmp("/dev/ttyS1", argv[1])!=0) )) {
-      printf("Usage:\tnserial SerialPort\n\tex: nserial /dev/ttyS1\n");
-      exit(1);
+    if (argc < 2) {
+        printf("Missing device argument");
+        exit(1);
     }
 
     /*
@@ -34,14 +28,14 @@ int main(int argc, char** argv)
     because we don't want to get killed if linenoise sends CTRL-C.
     */
 
-    fd = open(argv[1], O_RDWR | O_NOCTTY );
+    int fd = open(argv[1], O_RDWR | O_NOCTTY );
     if (fd < 0) { perror(argv[1]); exit(-1); }
 
     printf("Opened tty\n");
 
     if ( tcgetattr(fd, &oldtio) == -1) { /* save current port settings */
       perror("tcgetattr");
-      exit(-1);
+      exit(1);
     }
 
     printf("Read attributes\n");
@@ -54,41 +48,26 @@ int main(int argc, char** argv)
     /* set input mode (non-canonical, no echo,...) */
     newtio.c_lflag = 0;
 
-    newtio.c_cc[VTIME]    = 1;   /* inter-character timer unused */
-    newtio.c_cc[VMIN]     = 0;   /* blocking read until 5 chars received */
-
-    /*
-    VTIME e VMIN devem ser alterados de forma a proteger com um temporizador a
-    leitura do(s) pr�ximo(s) caracter(es)
-    */
-
-    /*
-    Cleans data received but no read and data written but not tranmitted
-    */
+    newtio.c_cc[VTIME] = 1;   /* inter-character timer unused */
+    newtio.c_cc[VMIN] = 0;   /* blocking read until 0 chars received */
 
     tcflush(fd, TCIOFLUSH);
 
-    if ( tcsetattr(fd,TCSANOW,&newtio) == -1) {
+    if (tcsetattr(fd,TCSANOW,&newtio) == -1) {
       perror("tcsetattr");
-      exit(-1);
+      exit(1);
     }
-
-    printf("Set attributes\n");
 
     printf("New termios structure set\n");
 
-    char buf[255];
-    printf( "Enter a value :");
-    gets(buf);
+    char msg[] = "O rato roeu a rolha da garrafa do rei da Russia";
 
-    res = write(fd, buf, strlen(buf)+1);
+    ssize_t res = write(fd, msg, strlen(msg) + 1);
 
-    /*
-    Emptying out all the buffers
-    */
     fflush(NULL);
 
-    printf("%d bytes written\n", res);
+    printf("%ld bytes written\n", res);
+    ssize_t old = res;
 
     /*
     O ciclo FOR e as instrucoes seguintes devem ser alterados de modo a respeitar
@@ -100,34 +79,31 @@ int main(int argc, char** argv)
     // Ler de volta
 
     STOP = FALSE;
-    unsigned i = 0;
-    res = 0;
+    ssize_t i = 0;
 
-    while (STOP==FALSE) {
-        res = read(fd,buf+i,1);
+    char buf[16384];
+
+    while (STOP == FALSE) {
+        res = read(fd, buf + i, 1);
         if (res > 0) {
-            if (buf[i++] == '\0') {
+            printf("Read  %c  %d\n", buf[i], (int)buf[i]);
+            ++i;
+            if (buf[i - 1] == '\0' && i >= old) {
               STOP = TRUE;
             }
+            if (i >= 300) {
+              STOP = TRUE;
+            }
+        } else if (res < 0) {
+            perror("res < 0 --");
         }
     }
  
-    printf(":%s:%d\n", buf, i);
-
-    printf("Finished\n");
-
+    printf(":%s:%ld\nFinished\n", buf, i);
     fflush(NULL);
     sleep(1);
 
-    // End
-
-    if ( tcsetattr(fd,TCSANOW,&oldtio) == -1) {
-      perror("tcsetattr");
-      exit(-1);
-    }
-
-    printf("Set old attributes\n");
-
+    tcsetattr(fd,TCSANOW,&oldtio);
     close(fd);
     return 0;
 }

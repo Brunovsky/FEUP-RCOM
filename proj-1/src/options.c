@@ -23,7 +23,7 @@ char* device = NULL; // d, device
 size_t packetsize = PACKETSIZE_DEFAULT; // p, packetsize
 int send_filesize = PACKET_FILESIZE_DEFAULT; // filesize, no-filesize
 int send_filename = PACKET_FILENAME_DEFAULT; // filename, no-filename
-const char* incoherent = INCOHERENT_CONTINUE; // i, incoherent
+const char* incoherent = INCOHERENT_DEFAULT; // i, incoherent
 int my_role = DEFAULT_ROLE; // t, transmitter, r, receiver
 
 // Positional

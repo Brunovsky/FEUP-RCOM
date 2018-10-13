@@ -1,6 +1,7 @@
 #include "ll-core.h"
 #include "options.h"
 #include "signals.h"
+#include "debug.h"
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -17,17 +18,7 @@
 // variable name
 //   packet                |  Packet  |           Packet = File fragment
 //    data            | PH |  Packet  |           PH = Packet Header
-// text/frame    | FH | PH |  Packet  | FT |      FH/FT = Frame Header/Trailer     
-
-#define FRAME_ESC             0x7d
-#define FRAME_FLAG_STUFFING   0x5e
-#define FRAME_ESC_STUFFING    0x5d
-#define FRAME_FLAG            0x7e
-
-#define FRAME_READ_BAD_LENGTH 0x01
-#define FRAME_READ_BAD_BCC1   0x02
-#define FRAME_READ_BAD_BCC2   0x03
-#define FRAME_READ_BAD_ESCAPE 0x04
+// text/frame    | FH | PH |  Packet  | FT |      FH/FT = Frame Header/Trailer
 
 typedef enum {
     READ_PRE_FRAME, READ_START_FLAG, READ_WITHIN_FRAME, READ_END_FLAG
@@ -122,7 +113,7 @@ static int destuffText(string text, string* outp, char* bcc2) {
     data.len = text.len - 6;
     data.s = malloc((data.len + 1) * sizeof(char));
 
-    strncpy(data.s, text.s + 4, data.len);
+    memcpy(data.s, text.s + 4, data.len);
     data.s[data.len] = '\0';
 
     int s = destuffData(data, outp, bcc2);
@@ -163,7 +154,7 @@ static int buildText(frame f, string* textp) {
         text.s[1] = f.a;
         text.s[2] = f.c;
         text.s[3] = f.a ^ f.c;
-        strncpy(text.s + 4, stuffed_data.s, stuffed_data.len);
+        memcpy(text.s + 4, stuffed_data.s, stuffed_data.len);
         text.s[text.len - 2] = bcc2;
         text.s[text.len - 1] = FRAME_FLAG;
         text.s[text.len] = '\0';
@@ -188,7 +179,10 @@ static int readText(int fd, string* textp) {
         ssize_t s = read(fd, readbuf, 1);
         char c = readbuf[0];
 
-        printf("s:%d  %c c:%d  state:%d\n", (int)s, c, (int)c, state);
+        if (DEEP_DEBUG) {
+            printf("[READ] s:%01d  c:%02x  state:%01d  |  %c\n",
+                (int)s, (unsigned char)c, state, c);
+        }
 
         if (s == 0) continue;
 
@@ -248,16 +242,12 @@ int writeFrame(int fd, frame f) {
 
     write(fd, text.s, text.len);
 
-    for (size_t i = 0; i < text.len; ++i) {
-        printf("%c", text.s[i]);
-    }
-
     free(text.s);
     return 0;
 }
 
 int readFrame(int fd, frame* fp) {
-    string text;
+    string text = {NULL, 0};
 
     set_alarm(timeout * 1000);
     int s = readText(fd, &text);
