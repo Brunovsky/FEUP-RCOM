@@ -45,7 +45,6 @@ static int main_receiver() {
     return 0;
 }
 
-// Transmitter
 int main(int argc, char** argv) {
     parse_args(argc, argv);
 

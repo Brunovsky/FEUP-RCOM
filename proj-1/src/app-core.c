@@ -63,7 +63,7 @@ static int make_control_packet(char control, string* tlvp, size_t n, string* out
     control_packet.len = 1;
 
     for (size_t i = 0; i < n; ++i) {
-        control_packet.len += strlen(tlvp[i].s);
+        control_packet.len += tlvp[i].len;
     }
 
     control_packet.s = malloc((control_packet.len + 1) * sizeof(char));
