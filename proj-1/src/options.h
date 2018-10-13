@@ -35,18 +35,18 @@
 // <!--- OPTIONS
 // Set number of send retries for link-layer communications, when the
 // receiver does not acknowledge the frame.
-#define TIME_RETRIES_FLAG 'r'
+#define TIME_RETRIES_FLAG '0'
 #define TIME_RETRIES_LFLAG "time-retries"
 #define TIME_RETRIES_DEFAULT 5
 extern int time_retries;
 
-#define ANSWER_RETRIES_FLAG 'a'
+#define ANSWER_RETRIES_FLAG '1'
 #define ANSWER_RETRIES_LFLAG "answer-retries"
 #define ANSWER_RETRIES_DEFAULT 3
 extern int answer_retries;
 
 // Set timeout in milliseconds for link-layer communications.
-#define TIMEOUT_FLAG 't'
+#define TIMEOUT_FLAG '2'
 #define TIMEOUT_LFLAG "timeout"
 #define TIMEOUT_DEFAULT 1000
 extern int timeout;
@@ -54,7 +54,7 @@ extern int timeout;
 // Set device (presumably serial port) to use.
 #define DEVICE_FLAG 'd'
 #define DEVICE_LFLAG "device"
-#define DEVICE_DEFAULT "/dev/ttyS1"
+#define DEVICE_DEFAULT "/dev/ttyS0"
 extern char* device;
 
 // Set packet size, in bytes
@@ -84,9 +84,16 @@ extern int send_filename;
 #define INCOHERENT_LFLAG "incoherent"
 #define INCOHERENT_DEFAULT "crash"
 extern const char* incoherent;
+
+#define TRANSMITTER_FLAG 't'
+#define TRANSMITTER_LFLAG "transmitter"
+#define TRANSMITTER 1
+#define RECEIVER_FLAG 'r'
+#define RECEIVER_LFLAG "receiver"
+#define RECEIVER 2
+#define DEFAULT_ROLE RECEIVER
+extern int my_role;
 // ----> END OF OPTIONS
-
-
 
 void parse_args(int argc, char** argv);
 

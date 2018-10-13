@@ -98,8 +98,8 @@ static int llclose_receiver(int fd) {
     return 2;
 }
 
-int llopen(int fd, role_t role) {
-    if (role == TRANSMITTER) {
+int llopen(int fd) {
+    if (my_role == TRANSMITTER) {
         return llopen_transmitter(fd);
     } else {
         return llopen_receiver(fd);
@@ -174,8 +174,8 @@ int llread(int fd, string* messagep) {
     return 1;
 }
 
-int llclose(int fd, role_t role) {
-    if (role == TRANSMITTER) {
+int llclose(int fd) {
+    if (my_role == TRANSMITTER) {
         return llclose_transmitter(fd);
     } else {
         return llclose_receiver(fd);

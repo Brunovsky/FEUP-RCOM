@@ -1,4 +1,5 @@
 #include "options.h"
+#include "debug.h"
 
 #include <unistd.h>
 #include <stdlib.h>
@@ -10,21 +11,20 @@
 #include <wchar.h>
 #include <limits.h>
 
-#define DEBUG true
-
 // <!--- OPTIONS
 static int show_help = false; // h, help
 static int show_usage = false; // usage
 static int show_version = false; // V, version
 
-int time_retries = TIME_RETRIES_DEFAULT; // r, time-retries
-int answer_retries = ANSWER_RETRIES_DEFAULT; // a, answer-retries
-int timeout = TIMEOUT_DEFAULT; // t, timeout
+int time_retries = TIME_RETRIES_DEFAULT; // time-retries
+int answer_retries = ANSWER_RETRIES_DEFAULT; // answer-retries
+int timeout = TIMEOUT_DEFAULT; // timeout
 char* device = NULL; // d, device
 size_t packetsize = PACKETSIZE_DEFAULT; // p, packetsize
 int send_filesize = PACKET_FILESIZE_DEFAULT; // filesize, no-filesize
 int send_filename = PACKET_FILENAME_DEFAULT; // filename, no-filename
 const char* incoherent = INCOHERENT_CONTINUE; // i, incoherent
+int my_role = DEFAULT_ROLE; // t, transmitter, r, receiver
 
 // Positional
 char** files = NULL;
@@ -49,6 +49,8 @@ static const struct option long_options[] = {
     {PACKET_FILENAME_LFLAG,         no_argument, &send_filename,      true},
     {PACKET_NOFILENAME_LFLAG,       no_argument, &send_filename,     false},
     {INCOHERENT_LFLAG,        required_argument, NULL,     INCOHERENT_FLAG},
+    {TRANSMITTER_LFLAG,             no_argument, NULL,    TRANSMITTER_FLAG},
+    {RECEIVER_LFLAG,                no_argument, NULL,       RECEIVER_FLAG},
     // end of options
     {0, 0, 0, 0}
     // format: {const char* lflag, int has_arg, int* flag, int val}
@@ -58,7 +60,7 @@ static const struct option long_options[] = {
 };
 
 // Enforce POSIX with leading +
-static const char* short_options = "Vhr:a:t:d:p:i:";
+static const char* short_options = "Vhd:p:i:rt";
 // x for no_argument, x: for required_argument,
 // x:: for optional_argument (GNU extension),
 // x; to transform  -x foo  into  --foo
@@ -71,36 +73,40 @@ static const wchar_t* version = L"FEUP RCOM 2018-2019\n"
     "\n";
 
 static const wchar_t* usage = L"usage: ll [option]... files...\n"
-    "Send one or more files through a device using a layered protocol.               \n"
-    "                                                                                \n"
-    "General:                                                                        \n"
-    "      --help,                                                                   \n"
-    "      --usage                  Show this message and exit                       \n"
-    "  -V, --version                Show 'version' message and exit                  \n"
-    "                                                                                \n"
-    "Options:                                                                        \n"
-    "  -r, --time-retries=N         Write stop & wait attempts for the link-layer    \n"
-    "                               when timeout occurs.                             \n"
-    "                                Default is 3                                    \n"
-    "  -a, --answer-retries=N       Write stop & wait attempts for the link-layer    \n"
-    "                               when an answer is invalid.                       \n"
-    "                                Default is 5                                    \n"
-    "  -t, --timeout=N              Read timeout for the link-layer, in ms.          \n"
-    "                                Default is 1000ms                               \n"
-    "  -d, --device=S               Set the device to use.                           \n"
-    "                                Default is /dev/ttyS0                           \n"
-    "  -p, --packetsize=N           Set the packets' size in bytes for the app layer.\n"
-    "                                Default is 128                                  \n"
-    "      --filesize,                                                               \n"
-    "      --no-filesize            Whether to send filesize in START packet.        \n"
-    "      --filename,                                                               \n"
-    "      --no-filename            Whether to send filename in START packet.        \n"
-    "                                Default is yes for both                         \n"
-    "  -i, -incoherent=T            Define the link-layer's reader behavior when     \n"
-    "                               it receives an incoherent acknowledgement.       \n"
-    "                                  crash -- Crash the reader.                    \n"
-    "                                  continue -- Treat as another answer error.    \n"
-    "                                Default is crash\n"
+    "Send one or more files through a device using a layered protocol.       \n"
+    "                                                                        \n"
+    "General:                                                                \n"
+    "      --help,                                                           \n"
+    "      --usage                  Show this message and exit               \n"
+    "  -V, --version                Show 'version' message and exit          \n"
+    "                                                                        \n"
+    "Options:                                                                \n"
+    "      --time-retries=N         Write stop&wait attempts for the         \n"
+    "                               link-layer when timeout occurs.          \n"
+    "                                Default is 3                            \n"
+    "      --answer-retries=N       Write stop&wait attempts for the         \n"
+    "                               link-layer when an answer is invalid.    \n"
+    "                                Default is 5                            \n"
+    "      --timeout=N              Read timeout for the link-layer, in ms.  \n"
+    "                                Default is 1000ms                       \n"
+    "  -d, --device=S               Set the device to use.                   \n"
+    "                                Default is /dev/ttyS0                   \n"
+    "  -p, --packetsize=N           Set the packets' size, in bytes.         \n"
+    "                                Default is 128 bytes                    \n"
+    "      --filesize,                                                       \n"
+    "      --no-filesize            Send filesize in START packet.           \n"
+    "      --filename,                                                       \n"
+    "      --no-filename            Send filename in START packet.           \n"
+    "                                Default is yes for both                 \n"
+    "  -i, -incoherent=T            Define the link-layer's writer's         \n"
+    "                               behavior when it receives an incoherent  \n"
+    "                               acknowledgement from the reader.         \n"
+    "                                  crash -- Exit immediately.            \n"
+    "                                  continue -- Treat as an answer error. \n"
+    "                                Default is crash                        \n"
+    "  -t, --transmitter,                                                    \n"
+    "  -r, --receiver               Set the program's role.                  \n"
+    "                                Default is receiver                     \n"
     "\n";
 
 /**
@@ -129,12 +135,14 @@ static void dump_options() {
         " send_filesize: %d\n"
         " send_filename: %d\n"
         " incoherent: %s\n"
+        " my_role: %d (T=%d, R=%d)\n"
         " number_of_files: %d\n"
         " files: %x\n";
 
     printf(dump_string, show_help, show_usage, show_version, time_retries,
         answer_retries, timeout, device, packetsize, send_filesize,
-        send_filename, incoherent, number_of_files, files);
+        send_filename, incoherent, my_role, TRANSMITTER, RECEIVER,
+        number_of_files, files);
 
     if (files != NULL) {
         for (size_t i = 0; i < number_of_files; ++i) {
@@ -147,8 +155,7 @@ static void print_all() {
     if (DEBUG) dump_options();
 
     setlocale(LC_ALL, "");
-    wprintf(usage);
-    wprintf(version);
+    printf("%ls%ls", usage, version);
     exit(EXIT_SUCCESS);
 }
 
@@ -156,7 +163,7 @@ static void print_usage() {
     if (DEBUG) dump_options();
     
     setlocale(LC_ALL, "");
-    wprintf(usage);
+    printf("%ls", usage);
     exit(EXIT_SUCCESS);
 }
 
@@ -164,7 +171,7 @@ static void print_version() {
     if (DEBUG) dump_options();
     
     setlocale(LC_ALL, "");
-    wprintf(version);
+    printf("%ls", version);
     exit(EXIT_SUCCESS);
 }
 
@@ -172,7 +179,8 @@ static void print_numpositional(int n) {
     if (DEBUG) dump_options();
     
     setlocale(LC_ALL, "");
-    wprintf(L"Error: Expected 1 or more positional arguments (filenames), but got %d.\n%S", n, usage);
+    printf("Error: Expected 1 or more positional arguments (filenames), but got %d.\n", n);
+    printf("%ls", usage);
     exit(EXIT_SUCCESS);
 }
 
@@ -180,7 +188,8 @@ static void print_badpositional(int i) {
     if (DEBUG) dump_options();
     
     setlocale(LC_ALL, "");
-    wprintf(L"Error: Positional argument #%d is invalid.\n%S", i, usage);
+    printf("Error: Positional argument #%d is invalid.\n", i);
+    printf("%ls", usage);
     exit(EXIT_SUCCESS);
 }
 
@@ -240,11 +249,6 @@ void parse_args(int argc, char** argv) {
 
     atexit(clear_options);
 
-    // If there are no args, print usage and version messages and exit
-    if (argc == 1) {
-        print_all();
-    }
-
     // Standard getopt_long Options Loop
     while (true) {
         int c, lindex = 0;
@@ -301,6 +305,12 @@ void parse_args(int argc, char** argv) {
             if (parse_incoherent(optarg, &incoherent) != 0) {
                 print_badarg(INCOHERENT_LFLAG);
             }
+            break;
+        case TRANSMITTER_FLAG:
+            my_role = TRANSMITTER;
+            break;
+        case RECEIVER_FLAG:
+            my_role = RECEIVER;
             break;
         case '?':
         default:

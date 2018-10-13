@@ -3,13 +3,9 @@
 
 #include "strings.h"
 
-typedef enum {
-	TRANSMITTER, RECEIVER
-} role_t;
+int llopen(int fd);
 
-int llopen(int fd, role_t role);
-
-int llclose(int fd, role_t role);
+int llclose(int fd);
 
 int llwrite(int fd, string message);
 

@@ -186,16 +186,23 @@ static int readText(int fd, string* textp) {
     while (state != READ_END_FLAG) {
         char readbuf[2];
         ssize_t s = read(fd, readbuf, 1);
+        char c = readbuf[0];
+
+        printf("s:%d  %c c:%d  state:%d\n", (int)s, c, (int)c, state);
 
         if (s == 0) continue;
 
         if (s == -1) {
-            if (errno == EINTR) return FRAME_READ_TIMEOUT;
-            else if (errno == EIO) continue;
-            else return FRAME_READ_INVALID;
+            if (errno == EINTR) {
+                free(text.s);
+                return FRAME_READ_TIMEOUT;
+            } else if (errno == EIO) {
+                continue;
+            } else {
+                free(text.s);
+                return FRAME_READ_INVALID;
+            }
         }
-
-        char c = readbuf[0];
 
         switch (state) {
         case READ_PRE_FRAME:
@@ -240,6 +247,11 @@ int writeFrame(int fd, frame f) {
     buildText(f, &text);
 
     write(fd, text.s, text.len);
+
+    for (size_t i = 0; i < text.len; ++i) {
+        printf("%c", text.s[i]);
+    }
+
     free(text.s);
     return 0;
 }
