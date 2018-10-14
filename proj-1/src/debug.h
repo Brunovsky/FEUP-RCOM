@@ -13,7 +13,7 @@
 #define TRACE_APP 0
 
 // Trace FILE behaviour
-#define TRACE_FILE 0
+#define TRACE_FILE 1
 
 // Trace chars read in LL
 #define DEEP_DEBUG 0

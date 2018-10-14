@@ -19,11 +19,10 @@ static int show_version = false; // V, version
 int time_retries = TIME_RETRIES_DEFAULT; // time-retries
 int answer_retries = ANSWER_RETRIES_DEFAULT; // answer-retries
 int timeout = TIMEOUT_DEFAULT; // timeout
-char* device = NULL; // d, device
+char* device = DEVICE_DEFAULT; // d, device
 size_t packetsize = PACKETSIZE_DEFAULT; // p, packetsize
 int send_filesize = PACKET_FILESIZE_DEFAULT; // filesize, no-filesize
 int send_filename = PACKET_FILENAME_DEFAULT; // filename, no-filename
-const char* incoherent = INCOHERENT_DEFAULT; // i, incoherent
 int my_role = DEFAULT_ROLE; // t, transmitter, r, receiver
 
 // Positional
@@ -48,7 +47,6 @@ static const struct option long_options[] = {
     {PACKET_NOFILESIZE_LFLAG,       no_argument, &send_filesize,     false},
     {PACKET_FILENAME_LFLAG,         no_argument, &send_filename,      true},
     {PACKET_NOFILENAME_LFLAG,       no_argument, &send_filename,     false},
-    {INCOHERENT_LFLAG,        required_argument, NULL,     INCOHERENT_FLAG},
     {TRANSMITTER_LFLAG,             no_argument, NULL,    TRANSMITTER_FLAG},
     {RECEIVER_LFLAG,                no_argument, NULL,       RECEIVER_FLAG},
     // end of options
@@ -98,12 +96,6 @@ static const wchar_t* usage = L"usage: ll [option]... files...\n"
     "      --filename,                                                       \n"
     "      --no-filename            Send filename in START packet.           \n"
     "                                Default is yes for both                 \n"
-    "  -i, -incoherent=T            Define the link-layer's writer's         \n"
-    "                               behavior when it receives an incoherent  \n"
-    "                               acknowledgement from the reader.         \n"
-    "                                  crash -- Exit immediately.            \n"
-    "                                  continue -- Treat as an answer error. \n"
-    "                                Default is crash                        \n"
     "  -t, --transmitter,                                                    \n"
     "  -r, --receiver               Set the program's role.                  \n"
     "                                Default is receiver                     \n"
@@ -112,9 +104,7 @@ static const wchar_t* usage = L"usage: ll [option]... files...\n"
 /**
  * Free all resources allocated to contain options by parse_args.
  */
-static void clear_options() {
-    free(device);
-    
+static void clear_options() {    
     for (size_t i = 0; i < number_of_files; ++i) {
         free(files[i]);
     }
@@ -134,15 +124,13 @@ static void dump_options() {
         " packetsize: %lu\n"
         " send_filesize: %d\n"
         " send_filename: %d\n"
-        " incoherent: %s\n"
         " my_role: %d (T=%d, R=%d)\n"
         " number_of_files: %d\n"
         " files: 0x%08x\n";
 
     printf(dump_string, show_help, show_usage, show_version, time_retries,
         answer_retries, timeout, device, packetsize, send_filesize,
-        send_filename, incoherent, my_role, TRANSMITTER, RECEIVER,
-        number_of_files, files);
+        send_filename, my_role, TRANSMITTER, RECEIVER, number_of_files, files);
 
     if (files != NULL) {
         for (size_t i = 0; i < number_of_files; ++i) {
@@ -225,20 +213,6 @@ static int parse_ulong(const char* str, size_t* outp) {
     return 0;
 }
 
-static int parse_incoherent(const char* str, const char** outp) {
-    if (strcmp(str, INCOHERENT_CRASH) == 0) {
-        *outp = INCOHERENT_CRASH;
-        return 0;
-    }
-
-    if (strcmp(str, INCOHERENT_CONTINUE) == 0) {
-        *outp = INCOHERENT_CONTINUE;
-        return 0;
-    }
-
-    return 1;
-}
-
 /**
  * Standard unix main's argument parsing function. Allocates resources
  * that are automatically freed at exit.
@@ -294,16 +268,11 @@ void parse_args(int argc, char** argv) {
             }
             break;
         case DEVICE_FLAG:
-            device = strdup(optarg);
+            device = optarg;
             break;
         case PACKETSIZE_FLAG:
             if (parse_ulong(optarg, &packetsize) != 0) {
                 print_badarg(PACKETSIZE_LFLAG);
-            }
-            break;
-        case INCOHERENT_FLAG:
-            if (parse_incoherent(optarg, &incoherent) != 0) {
-                print_badarg(INCOHERENT_LFLAG);
             }
             break;
         case TRANSMITTER_FLAG:
@@ -325,10 +294,6 @@ void parse_args(int argc, char** argv) {
 
     if (show_version) {
         print_version();
-    }
-
-    if (device == NULL) {
-        device = strdup(DEVICE_DEFAULT);
     }
 
     // Positional arguments processing
