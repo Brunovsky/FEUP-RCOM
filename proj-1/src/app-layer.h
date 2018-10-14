@@ -21,6 +21,8 @@
 #define PRECEIVE_END           0x53
 #define PRECEIVE_BAD_PACKET    0x54
 
+#define MAXIMUM_PACKET_SIZE    0x0fffflu
+
 typedef struct {
     char type;
     string value;

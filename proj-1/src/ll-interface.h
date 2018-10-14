@@ -3,6 +3,12 @@
 
 #include "strings.h"
 
+#define LL_OK                0x00
+#define LL_WRONG_COMMAND     0x10
+#define LL_WRONG_RESPONSE    0x11
+#define LL_NO_TIME_RETRIES   0x20
+#define LL_NO_ANSWER_RETRIES 0x21
+
 int llopen(int fd);
 
 int llclose(int fd);

@@ -45,10 +45,10 @@ extern int time_retries;
 #define ANSWER_RETRIES_DEFAULT 3
 extern int answer_retries;
 
-// Set timeout in milliseconds for link-layer communications.
+// Set timeout in deciseconds for link-layer communications.
 #define TIMEOUT_FLAG '2'
 #define TIMEOUT_LFLAG "timeout"
-#define TIMEOUT_DEFAULT 1000
+#define TIMEOUT_DEFAULT 10
 extern int timeout;
 
 // Set device (presumably serial port) to use.

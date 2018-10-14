@@ -20,6 +20,8 @@ static void free_packets(string* packets, size_t number_packets) {
 }
 
 int send_file(int fd, char* filename) {
+    int s = 0;
+
     int filefd = open(filename, O_RDONLY);
     if (filefd == -1) {
         perror("[FILE] Failed to open file");
@@ -28,15 +30,15 @@ int send_file(int fd, char* filename) {
 
     FILE* file = fdopen(filefd, "r");
     if (file == NULL) {
-        perror("[FILE]: Failed to open file stream");
+        perror("[FILE] Failed to open file stream");
         close(filefd);
         return 1;
     }
 
     // Seek to the end of the file to extract its size.
-    int s = fseek(file, 0, SEEK_END);
+    s = fseek(file, 0, SEEK_END);
     if (s != 0) {
-        perror("[FILE]: Failed to seek file");
+        perror("[FILE] Failed to seek file");
         fclose(file);
         return 1;
     }
@@ -46,7 +48,7 @@ int send_file(int fd, char* filename) {
     rewind(file);
 
     if (lfs <= 0) {
-        printf("[FILE]: Error: filesize could not be read, or is empty\n");
+        printf("[FILE] Error: filesize could not be read, or file is empty\n");
         fclose(file);
         return 1;
     }
@@ -57,6 +59,11 @@ int send_file(int fd, char* filename) {
     buffer[filesize] = '\0';
 
     fclose(file);
+
+    if (TRACE_FILE) {
+        printf("[FILE] File read and closed [filesize=%lu,filename=%s]\n",
+            filesize, filename);
+    }
 
     // Split the buffer into various strings.
     // The last one will have a smaller size.
@@ -88,27 +95,39 @@ int send_file(int fd, char* filename) {
     free(buffer);
 
     // Start communications.
-    llopen(fd);
-    send_start_packet(fd, filesize, filename);
-    if (DEBUG) printf("[FILE] START comms for file %s\n", filename);
+    s = llopen(fd);
+    if (s != LL_OK) goto error;
+
+    if (TRACE_FILE) printf("[FILE] BEGIN Packets %s\n", filename);
+
+    s = send_start_packet(fd, filesize, filename);
+    if (s != LL_OK) goto error;
 
     // Send data packets.
     for (size_t i = 0; i < number_packets; ++i) {
-        send_data_packet(fd, packets[i]);
+        s = send_data_packet(fd, packets[i]);
+        if (s != LL_OK) goto error;
     }
 
     // End communications.
-    send_end_packet(fd, filesize, filename);
-    llclose(fd);
-    if (DEBUG) printf("[FILE] END comms for file %s\n", filename);
+    s = send_end_packet(fd, filesize, filename);
+    if (s != LL_OK) goto error;
 
-    // Free sent packets.
+    if (TRACE_FILE) printf("[FILE] END Packets %s\n", filename);
+
+    s = llclose(fd);
+
     free_packets(packets, number_packets);
+    return s ? 1 : 0;
 
-    return 0;
+error:
+    free_packets(packets, number_packets);
+    return 1;
 }
 
 int receive_file(int fd) {
+    int s = 0;
+
     // File variables.
     size_t filesize = 0;
     char* filename = NULL;
@@ -119,35 +138,41 @@ int receive_file(int fd) {
     data_packet dp;
 
     // Start communications.
-    llopen(fd);
+    s = llopen(fd);
+    if (s != LL_OK) return 1;
+
+    if (TRACE_FILE) printf("[FILE] BEGIN Packets\n");
+
     type = receive_packet(fd, &dp, &cp);
 
     switch (type) {
     case PRECEIVE_START:
         get_tlv_filesize(cp, &filesize);
         get_tlv_filename(cp, &filename);
-        printf("[FILE] START packet: [filesize=%lu] [filename=%s]\n",
-            filesize, filename);
+        if (TRACE_FILE) {
+            printf("[FILE] Received START packet [filesize=%lu,filename=%s]\n",
+                filesize, filename);
+        }
         free_control_packet(cp);
         break;
     case PRECEIVE_DATA:
-        printf("[FILE] Error: Expected START packet, received DATA packet\n");
+        printf("[FILE] Error: Expected START packet, received DATA packet. Exiting\n");
         free_data_packet(dp);
         return 1;
     case PRECEIVE_END:
-        printf("[FILE] Error: Expected START packet, received END packet\n");
+        printf("[FILE] Error: Expected START packet, received END packet. Exiting\n");
         free_control_packet(cp);
         return 1;
-    default:
-        printf("[FILE] Error: Expected START packet, received BAD packet\n");
+    case PRECEIVE_BAD_PACKET: default:
+        printf("[FILE] Error: Expected START packet, received BAD packet. Exiting\n");
         return 1;
     }
 
     string* packets = malloc(10 * sizeof(string));
     size_t reserved = 10, number_packets = 0;
-    bool reached_end = false;
+    bool done = false, reached_end = false;
 
-    while (!reached_end) {
+    while (!done) {
         type = receive_packet(fd, &dp, &cp);
 
         if (number_packets == reserved) {
@@ -157,15 +182,15 @@ int receive_file(int fd) {
 
         switch (type) {
         case PRECEIVE_START:
-            printf("[FILE] Error: Expected DATA/END packet, received START packet. Continuing\n");
+            printf("[FILE] Error: Expected DATA/END packet, "
+                "received START packet. Continuing\n");
             free_control_packet(cp);
             break;
         case PRECEIVE_DATA:
-            if (DEBUG) printf("[FILE] Received DATA packet #%d\n", dp.index);
             packets[number_packets++] = dp.data;
             break;
         case PRECEIVE_END:
-            printf("[FILE] END packet: Total DATA packets: %lu\n", number_packets);
+            done = true;
             reached_end = true;
 
             size_t end_filesize = 0;
@@ -173,52 +198,66 @@ int receive_file(int fd) {
             get_tlv_filesize(cp, &end_filesize);
             get_tlv_filename(cp, &end_filename);
 
-            printf("[FILE] END packet: [filesize=%lu] [filename=%s]\n",
-                filesize, filename);
+            if (TRACE_FILE) {
+                printf("[FILE] Received END packet [ndata=%lu,filesize=%lu,filename=%s]\n",
+                    number_packets, filesize, filename);
 
-            if (DEBUG) {
                 if (end_filesize == filesize) {
                     printf("[FILE] END packet: filesize OK\n");
                 } else {
-                    printf("[FILE] END packet: filesize NOT OK [start=%lu]", filesize);
+                    printf("[FILE] END packet: filesize NOT OK [start=%lu]",
+                        filesize);
                 }
+                
                 if (strcmp(filename, end_filename) == 0) {
                     printf("[FILE] END packet: filename OK\n");
                 } else {
-                    printf("[FILE] END packet: filename NOT OK [start=%s]", filename);
+                    printf("[FILE] END packet: filename NOT OK [start=%s]",
+                        filename);
                 }
             }
 
             free(end_filename);
             free_control_packet(cp);
             break;
-        default:
-            printf("[FILE] Error: Expected DATA/END packet, received BAD packet. Continuing\n");
+        case PRECEIVE_BAD_PACKET: default:
+            printf("[FILE] Error: Expected DATA/END packet, received BAD packet. Exiting\n");
+            done = true;
             break;
         }
     }
 
-    llclose(fd);
-    if (DEBUG) printf("[FILE] Ended comms for file %s\n", filename);
+    if (!reached_end) goto error;
+
+    if (TRACE_FILE) printf("[FILE] END Packets %s\n", filename);
+
+    s = llclose(fd);
+    if (s != LL_OK) {
+        printf("[FILE] llclose failed. Writing to file %s anyway\n", filename);
+    }
 
     FILE* file = fopen(filename, "w");
     if (file == NULL) {
-        perror("[FILE] Failed to open file");
-        free_packets(packets, number_packets);
-        return 1;
+        perror("[FILE] Failed to open output file");
+        goto error;
     }
 
-    printf("[FILE] Writing to file %s...\n", filename);
+    if (TRACE_FILE) printf("[FILE] Writing to file %s...\n", filename);
 
     for (size_t i = 0; i < number_packets; ++i) {
         fwrite(packets[i].s, packets[i].len, 1, file);
     }
 
-    printf("[FILE] Finished writing to file %s\n", filename);
+    if (TRACE_FILE) printf("[FILE] Finished writing to file %s\n", filename);
 
     fclose(file);
 
     free_packets(packets, number_packets);
     free(filename);
-    return 0;
+    return s ? 1 : 0;
+
+error:
+    free_packets(packets, number_packets);
+    free(filename);
+    return 1;
 }

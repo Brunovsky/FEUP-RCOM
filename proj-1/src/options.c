@@ -87,8 +87,8 @@ static const wchar_t* usage = L"usage: ll [option]... files...\n"
     "      --answer-retries=N       Write stop&wait attempts for the         \n"
     "                               link-layer when an answer is invalid.    \n"
     "                                Default is 5                            \n"
-    "      --timeout=N              Read timeout for the link-layer, in ms.  \n"
-    "                                Default is 1000ms                       \n"
+    "      --timeout=N              Read timeout for the link-layer, in ds.  \n"
+    "                                Default is 10 (1s)                      \n"
     "  -d, --device=S               Set the device to use.                   \n"
     "                                Default is /dev/ttyS0                   \n"
     "  -p, --packetsize=N           Set the packets' size, in bytes.         \n"
@@ -137,7 +137,7 @@ static void dump_options() {
         " incoherent: %s\n"
         " my_role: %d (T=%d, R=%d)\n"
         " number_of_files: %d\n"
-        " files: %x\n";
+        " files: 0x%08x\n";
 
     printf(dump_string, show_help, show_usage, show_version, time_retries,
         answer_retries, timeout, device, packetsize, send_filesize,
@@ -152,7 +152,7 @@ static void dump_options() {
 }
 
 static void print_all() {
-    if (DEBUG) dump_options();
+    if (DUMP_OPTIONS) dump_options();
 
     setlocale(LC_ALL, "");
     printf("%ls%ls", usage, version);
@@ -160,7 +160,7 @@ static void print_all() {
 }
 
 static void print_usage() {
-    if (DEBUG) dump_options();
+    if (DUMP_OPTIONS) dump_options();
     
     setlocale(LC_ALL, "");
     printf("%ls", usage);
@@ -168,7 +168,7 @@ static void print_usage() {
 }
 
 static void print_version() {
-    if (DEBUG) dump_options();
+    if (DUMP_OPTIONS) dump_options();
     
     setlocale(LC_ALL, "");
     printf("%ls", version);
@@ -176,28 +176,28 @@ static void print_version() {
 }
 
 static void print_numpositional(int n) {
-    if (DEBUG) dump_options();
+    if (DUMP_OPTIONS) dump_options();
     
     setlocale(LC_ALL, "");
-    printf("Error: Expected 1 or more positional arguments (filenames), but got %d.\n", n);
+    printf("[ARGS] Error: Expected 1 or more positional arguments (filenames), but got %d.\n", n);
     printf("%ls", usage);
     exit(EXIT_SUCCESS);
 }
 
 static void print_badpositional(int i) {
-    if (DEBUG) dump_options();
+    if (DUMP_OPTIONS) dump_options();
     
     setlocale(LC_ALL, "");
-    printf("Error: Positional argument #%d is invalid.\n", i);
+    printf("[ARGS] Error: Positional argument #%d is invalid.\n", i);
     printf("%ls", usage);
     exit(EXIT_SUCCESS);
 }
 
 static void print_badarg(const char* option) {
-    if (DEBUG) dump_options();
+    if (DUMP_OPTIONS) dump_options();
     
     setlocale(LC_ALL, "");
-    wprintf(L"Error: Bad argument for option %s.\n%S", option, usage);
+    wprintf(L"[ARGS] Error: Bad argument for option %s.\n%S", option, usage);
     exit(EXIT_SUCCESS);
 }
 
@@ -343,5 +343,5 @@ void parse_args(int argc, char** argv) {
         } while (optind < argc);
     }
 
-    if (DEBUG) dump_options();
+    if (DUMP_OPTIONS) dump_options();
 }

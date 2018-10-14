@@ -11,7 +11,7 @@
 #include <termios.h>
 #include <errno.h>
 
-#define BAUDRATE B38400
+#define BAUDRATE B115200
 
 static struct termios oldtios;
 
@@ -34,23 +34,45 @@ int setup_link_layer(const char* name) {
         exit(EXIT_FAILURE);
     }
 
-    if (DEBUG) printf("[SETUP] Opened terminal\n");
+    if (TRACE_SETUP) printf("[SETUP] Opened device %s\n", name);
 
     // Save current terminal settings in oldtios.
     if (tcgetattr(fd, &oldtios) == -1) {
-        perror("Failed to read old terminal settings (tcgetattr)");
+        perror("[SETUP] Failed to read old terminal settings (tcgetattr)");
         exit(EXIT_FAILURE);
     }
 
     // Setup new termios
     struct termios newtio;
     memset(&newtio, 0, sizeof(struct termios));
-    newtio.c_cflag = BAUDRATE | CS8 | CLOCAL | CREAD;
+
+    // c_iflag   Error handling...
+    // IGNPAR :- Ignore framing errors and parity errors
+    // ...
     newtio.c_iflag = IGNPAR;
+    
+    // c_oflag   Output delay...
+    // ...
     newtio.c_oflag = 0;
 
-    /* set input mode (non-canonical, no echo,...) */
+    // c_cflag   Input manipulation, baud rates...
+    // CS*    :- Character size mask (CS5, CS6, CS7, CS8)
+    // CLOCAL :- Ignore modem control lines
+    // CREAD  :- Enable receiver
+    // CSTOPB :- Set two stop bits, rather than one
+    // ...
+    newtio.c_cflag = BAUDRATE | CS8 | CLOCAL | CREAD;
+
+    // c_lflag   Canonical or non canonical mode...
+    // ICANON :- Enable canonical mode
+    // ECHO   :- Echo input characters
+    // ...
     newtio.c_lflag = 0;
+
+    // c_cc   Special characters
+    // VTIME  :- Timeout in deciseconds for noncanonical read (TIME).
+    // VMIN   :- Minimum number of characters for noncanonical read (MIN).
+    // ...
     newtio.c_cc[VTIME] = 1;
     newtio.c_cc[VMIN] = 0;
 
@@ -60,13 +82,11 @@ int setup_link_layer(const char* name) {
     tcflush(fd, TCIOFLUSH);
 
     if (tcsetattr(fd, TCSANOW, &newtio) == -1) {
-        perror("Failed to set new terminal settings (tcsetattr)");
+        perror("[SETUP] Failed to set new terminal settings (tcsetattr)");
         exit(EXIT_FAILURE);
     }
 
-    if (DEBUG) printf("[SETUP] Setup new terminal settings\n");
-
-    if (DEBUG) printf("[SETUP] Setup link layer on %s\n", name);
+    if (TRACE_SETUP) printf("[SETUP] Setup link layer on %s\n", name);
     return fd;
 }
 
@@ -78,7 +98,7 @@ int setup_link_layer(const char* name) {
  */
 int reset_link_layer(int fd) {
     if (tcsetattr(fd, TCSANOW, &oldtios) == -1) {
-        perror("Failed to set old terminal settings (tcsetattr)");
+        perror("[RESET] Failed to set old terminal settings (tcsetattr)");
         close(fd);
         return 1;
     } else {

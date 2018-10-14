@@ -18,14 +18,17 @@ static int llopen_transmitter(int fd) {
         if (s == FRAME_READ_TIMEOUT) {
             ++time_count;
             continue;
-        } else if (isUAframe(f)) {
-            return 0;
+        } else if (s == 0 && isUAframe(f)) {
+            if (TRACE_LL || TRACE_FILE) printf("[LL] llopen OK\n");
+            return LL_OK;
         } else {
-            return 1;
+            printf("[LL] llopen FAILED: invalid (not UA) response [s=0x%02x]\n", s);
+            return LL_WRONG_RESPONSE;
         }
     }
 
-    return 2;
+    printf("[LL] llopen FAILED: %d time retries ran out\n", time_retries);
+    return LL_NO_TIME_RETRIES;
 }
 
 static int llopen_receiver(int fd) {
@@ -38,15 +41,18 @@ static int llopen_receiver(int fd) {
         if (s == FRAME_READ_TIMEOUT) {
             ++time_count;
             continue;
-        } else if (isSETframe(f)) {
+        } else if (s == 0 && isSETframe(f)) {
             writeUAframe(fd);
-            return 0;
+            if (TRACE_LL || TRACE_FILE) printf("[LL] llopen OK\n");
+            return LL_OK;
         } else {
-            return 1;
+            printf("[LL] llopen FAILED: invalid (not SET) command [s=0x%02x]\n", s);
+            return LL_WRONG_COMMAND;
         }
     }
 
-    return 2;
+    printf("[LL] llopen FAILED: %d time retries ran out\n", time_retries);
+    return LL_NO_TIME_RETRIES;
 }
 
 static int llclose_transmitter(int fd) {
@@ -61,15 +67,18 @@ static int llclose_transmitter(int fd) {
         if (s == FRAME_READ_TIMEOUT) {
             ++time_count;
             continue;
-        } else if (isDISCframe(f)) {
+        } else if (s == 0 && isDISCframe(f)) {
             writeUAframe(fd);
-            return 0;
+            if (TRACE_LL || TRACE_FILE) printf("[LL] llclose OK\n");
+            return LL_OK;
         } else {
-            return 1;
+            printf("[LL] llclose FAILED: invalid (not DISC) response [s=0x%02x]\n", s);
+            return LL_WRONG_RESPONSE;
         }
     }
 
-    return 2;
+    printf("[LL] llclose FAILED: %d time retries ran out\n", time_retries);
+    return LL_NO_TIME_RETRIES;
 }
 
 static int llclose_receiver(int fd) {
@@ -82,22 +91,26 @@ static int llclose_receiver(int fd) {
         if (s == FRAME_READ_TIMEOUT) {
             ++time_count;
             continue;
-        } else if (isDISCframe(f)) {
+        } else if (s == 0 && isDISCframe(f)) {
             writeDISCframe(fd);
 
-            readFrame(fd, &f);
+            s = readFrame(fd, &f);
 
-            if (isUAframe(f)) {
-                return 0;
+            if (s == 0 && isUAframe(f)) {
+                if (TRACE_LL || TRACE_FILE) printf("[LL] llclose OK\n");
+                return LL_OK;
             } else {
-                return 3;
+                printf("[LL] llclose FAILED: invalid (not UA) response [s=0x%02x]\n", s);
+                return LL_WRONG_RESPONSE;
             }
         } else {
-            return 1;
+            printf("[LL] llclose FAILED: invalid (not DISC) command [s=0x%02x]\n", s);
+            return LL_WRONG_COMMAND;
         }
     }
 
-    return 2;
+    printf("[LL] llclose FAILED: %d time retries ran out\n", time_retries);
+    return LL_NO_TIME_RETRIES;
 }
 
 int llopen(int fd) {
@@ -114,20 +127,29 @@ int llwrite(int fd, string message) {
     int time_count = 0, answer_count = 0;
 
     while (time_count < time_retries && answer_count < answer_retries) {
-        writeIframe(fd, message, index);
+        int s = writeIframe(fd, message, index);
+        if (s != FRAME_WRITE_OK) {
+            ++time_count;
+            continue;
+        }
 
         frame f;
-        int s = readFrame(fd, &f);
+        s = readFrame(fd, &f);
 
         switch (s) {
         case FRAME_READ_OK:
             if (isRRframe(f, index + 1) || isREJframe(f, index + 1)) {
                 ++index;
-                return 0;
+                if (TRACE_LL) {
+                    printf("[LL] llwrite OK [index=%d]\n", index);
+                }
+                return LL_OK;
             } else if (isRRframe(f, index) || isREJframe(f, index)) {
                 ++answer_count;
             } else {
-                // Incoherent behaviour
+                if (TRACE_LL) {
+                    printf("[LL] llwrite: invalid response (not RR or REJ)\n");
+                }
                 ++answer_count;
             }
             break;
@@ -140,7 +162,13 @@ int llwrite(int fd, string message) {
         }
     }
 
-    return 1;
+    if (time_count == time_retries) {
+        printf("[LL] llwrite FAILED: %d time retries ran out\n", time_retries);
+        return LL_NO_TIME_RETRIES;
+    } else {
+        printf("[LL] llwrite FAILED: %d answer retries ran out\n", answer_retries);
+        return LL_NO_ANSWER_RETRIES;
+    }
 }
 
 int llread(int fd, string* messagep) {
@@ -157,10 +185,17 @@ int llread(int fd, string* messagep) {
             if (isIframe(f, index)) {
                 writeRRframe(fd, ++index);
                 *messagep = f.data;
-                return 0;
+                if (TRACE_LL) {
+                    printf("[LL] llread OK [index=%d]\n", index);
+                }
+                return LL_OK;
             } else if (isIframe(f, index + 1)) {
                 writeRRframe(fd, index);
                 ++answer_count;
+                if (TRACE_LL) {
+                    printf("[LL] llread: Expected frame %d, got frame %d\n",
+                        index % 2, (index + 1) % 2);
+                }
             }
             break;
         case FRAME_READ_TIMEOUT:
@@ -173,7 +208,13 @@ int llread(int fd, string* messagep) {
         }
     }
 
-    return 1;
+    if (time_count == time_retries) {
+        printf("[LL] llwrite FAILED: %d time retries ran out\n", time_retries);
+        return LL_NO_TIME_RETRIES;
+    } else {
+        printf("[LL] llwrite FAILED: %d answer retries ran out\n", answer_retries);
+        return LL_NO_ANSWER_RETRIES;
+    }
 }
 
 int llclose(int fd) {

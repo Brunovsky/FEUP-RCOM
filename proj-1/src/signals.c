@@ -9,29 +9,32 @@
 #include <signal.h>
 #include <errno.h>
 
-#define UALARM_TEST_SET    2500
-#define UALARM_TEST_WAIT   500
-#define UALARM_TEST_SLEEP  5500
+#define UALARM_TEST_SET           2500
+#define UALARM_TEST_SHORT_SLEEP   500
+#define UALARM_TEST_LONG_SLEEP    5500
 
 static const char str_kill[]  = " -- Terminating...\n";
 static const char str_abort[] = " -- Aborting...\n";
 static const char str_alarm[] = " -- Alarmed...\n";
 
+static volatile sig_atomic_t alarmed = 0;
+
 // SIGHUP, SIGQUIT, SIGTERM, SIGINT
 static void sighandler_kill(int signum) {
-    if (DEBUG) write(STDOUT_FILENO, str_kill, strlen(str_kill));
+    if (TRACE_SIG) write(STDOUT_FILENO, str_kill, strlen(str_kill));
     exit(EXIT_FAILURE);
 }
 
 // SIGABRT
 static void sighandler_abort(int signum) {
-    if (DEBUG) write(STDOUT_FILENO, str_abort, strlen(str_abort));
+    if (TRACE_SIG) write(STDOUT_FILENO, str_abort, strlen(str_abort));
     abort();
 }
 
 // SIGALRM
 static void sighandler_alarm(int signum) {
-    if (DEBUG) write(STDOUT_FILENO, str_alarm, strlen(str_alarm));
+    if (TRACE_SIG) write(STDOUT_FILENO, str_alarm, strlen(str_alarm));
+    alarmed = 1;
 }
 
 /**
@@ -96,38 +99,46 @@ int set_signal_handlers() {
         exit(EXIT_FAILURE);
     }
 
-    if (DEBUG) printf("[SIG] Set all signal handlers\n");
+    if (TRACE_SETUP) printf("[SIG] Set all signal handlers\n");
     return 0;
 }
 
-void set_alarm(int microseconds) {
-    ualarm((useconds_t)microseconds, 0);
+void set_alarm() {
+    ualarm(timeout * 1e5, 0);
+    alarmed = 0;
 }
 
 void unset_alarm() {
     ualarm(0, 0);
+    alarmed = 0;
+}
+
+bool was_alarmed() {
+    bool r = alarmed ? true : false;
+    alarmed = 0;
+    return r;
 }
 
 void test_alarm() {
     int s;
 
-    set_alarm(UALARM_TEST_SET);
-    
-    s = usleep(UALARM_TEST_WAIT);
-    if (s != 0) {
-        printf("[ALARM] Failed test_alarm() -- wait interrupted\n");
+    ualarm(UALARM_TEST_SET, 0);
+           
+    s = usleep(UALARM_TEST_SHORT_SLEEP);
+    if (s !=        0) {
+        printf("[ALARM] Failed test_alarm() -- short sleep interrupted\n");
         exit(EXIT_FAILURE);
     }
 
-    unset_alarm();
+    ualarm(0, 0);
 
-    s = usleep(UALARM_TEST_SLEEP);
+    s = usleep(UALARM_TEST_LONG_SLEEP);
     if (s != 0) {
-        printf("[ALARM] Failed test_alarm() -- sleep interrupted\n");
+        printf("[ALARM] Failed test_alarm() -- long sleep interrupted\n");
         exit(EXIT_FAILURE);
     }
 
-    unset_alarm();
+    ualarm(0, 0);
 
-    if (DEBUG) printf("[ALARM] Passed test_alarm()\n");
+    if (TRACE_SETUP) printf("[ALARM] Passed test_alarm()\n");
 }
