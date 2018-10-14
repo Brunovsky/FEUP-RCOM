@@ -159,6 +159,7 @@ static int buildText(frame f, string* textp) {
         text.s[text.len - 1] = FRAME_FLAG;
         text.s[text.len] = '\0';
 
+        free(stuffed_data.s);
         *textp = text;
         return 0;
     }

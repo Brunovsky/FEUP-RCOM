@@ -86,7 +86,7 @@ bool isCONTROLpacket(char c, string packet_str, control_packet* outp) {
 
     bool b = j == packet_str.len;
 
-    if (b) {
+    if (!b) {
         free_control_packet(out);
     } else {
         *outp = out;
@@ -218,7 +218,9 @@ int build_control_packet(char control, string* tlvp, size_t n, string* outp) {
     for (size_t i = 0; i < n; ++i) {
         memcpy(tmp, tlvp[i].s, tlvp[i].len);
         tmp += tlvp[i].len;
+        free(tlvp[i].s);
     }
+    free(tlvp);
 
     if (DEBUG) {
         printf("[APP] Built CP %x\n", control);
@@ -304,6 +306,13 @@ int receive_packet(int fd, data_packet* datap, control_packet* controlp) {
 
     data_packet data;
     control_packet control;
+
+    if (DEBUG) {
+        printf("Whatis?\n");
+        print_stringn(packet);
+    }
+
+    free(packet.s);
 
     if (isSTARTpacket(packet, &control)) {
         in_packet_index = 0;

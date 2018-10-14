@@ -113,6 +113,8 @@ static const wchar_t* usage = L"usage: ll [option]... files...\n"
  * Free all resources allocated to contain options by parse_args.
  */
 static void clear_options() {
+    free(device);
+    
     for (size_t i = 0; i < number_of_files; ++i) {
         free(files[i]);
     }

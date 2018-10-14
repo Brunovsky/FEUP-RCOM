@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <unistd.h>
 
+char* m0 = "/home/malheiro/putas/ganso.png";
 char* m1 = "O rato roeu a rolha da garrafa do rei da Russia";
 char* m2 = "Putas tusas gay pelo Dux e pelo Marcelo";
 char* m3 = "Top 10 Anime Messages -- and other stupid things";
@@ -27,14 +28,14 @@ static int main_transmitter() {
 
     llopen(fd);
 
-    send_start_packet(fd, 73, "O Malheiro comeu o Dux");
+    send_start_packet(fd, 73, m0);
 
     send_data_packet(fd, message1);
     send_data_packet(fd, message2);
     send_data_packet(fd, message3);
     send_data_packet(fd, message4);
 
-    send_end_packet(fd, 73, "O Malheiro comeu o Dux");
+    send_end_packet(fd, 73, m0);
 
     llclose(fd);
 
@@ -64,6 +65,12 @@ static int main_receiver() {
 
     llclose(fd);
 
+    free_data_packet(dp1);
+    free_data_packet(dp2);
+    free_data_packet(dp3);
+    free_data_packet(dp4);
+    free_control_packet(cp1);
+    free_control_packet(cp2);
 
     sleep(1);
     reset_link_layer(fd);

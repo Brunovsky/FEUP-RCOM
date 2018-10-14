@@ -46,6 +46,7 @@ bool get_tlv_filename(control_packet controlp, string* outp);
 bool get_tlv_filesize(control_packet controlp, size_t* outp);
 
 
+// These ought to be made private in the future
 int build_data_packet(string fragment, char index, string* outp);
 
 int build_tlv_str(char type, string value, string* outp);
