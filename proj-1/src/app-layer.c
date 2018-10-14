@@ -218,9 +218,7 @@ int build_control_packet(char control, string* tlvp, size_t n, string* outp) {
     for (size_t i = 0; i < n; ++i) {
         memcpy(tmp, tlvp[i].s, tlvp[i].len);
         tmp += tlvp[i].len;
-        free(tlvp[i].s);
     }
-    free(tlvp);
 
     if (DEBUG) {
         printf("[APP] Built CP %x\n", control);
@@ -271,6 +269,9 @@ int send_start_packet(int fd, size_t filesize, char* filename) {
     s = build_control_packet(PCONTROL_START, tlvs, 2, &start_packet);
     if (s != 0) return s;
 
+    free(tlvs[0].s);
+    free(tlvs[1].s);
+
     s = llwrite(fd, start_packet);
     free(start_packet.s);
     return s;
@@ -292,6 +293,9 @@ int send_end_packet(int fd, size_t filesize, char* filename) {
     s = build_control_packet(PCONTROL_END, tlvs, 2, &end_packet);
     if (s != 0) return s;
 
+    free(tlvs[0].s);
+    free(tlvs[1].s);
+
     s = llwrite(fd, end_packet);
     free(end_packet.s);
     return s;
@@ -312,12 +316,11 @@ int receive_packet(int fd, data_packet* datap, control_packet* controlp) {
         print_stringn(packet);
     }
 
-    free(packet.s);
-
     if (isSTARTpacket(packet, &control)) {
         in_packet_index = 0;
         *controlp = control;
 
+        free(packet.s);
         return PCONTROL_START;
     }
 
@@ -329,6 +332,7 @@ int receive_packet(int fd, data_packet* datap, control_packet* controlp) {
         ++in_packet_index;
         *datap = data;
 
+        free(packet.s);
         return PCONTROL_DATA;
     }
 
@@ -336,8 +340,10 @@ int receive_packet(int fd, data_packet* datap, control_packet* controlp) {
         in_packet_index = 0;
         *controlp = control;
 
+        free(packet.s);
         return PCONTROL_END;
     }
 
+    free(packet.s);
     return PCONTROL_BAD_PACKET;
 }
