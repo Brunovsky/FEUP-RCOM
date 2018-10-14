@@ -18,7 +18,7 @@ void free_data_packet(data_packet packet) {
     free(packet.data.s);
 }
 
-bool isDATApacket(string packet_str, data_packet* outp) {
+static bool isDATApacket(string packet_str, data_packet* outp) {
     if (packet_str.len < 5 || packet_str.s == NULL) return false;
 
     char c = packet_str.s[0];
@@ -45,7 +45,7 @@ bool isDATApacket(string packet_str, data_packet* outp) {
     return b;
 }
 
-bool isCONTROLpacket(char c, string packet_str, control_packet* outp) {
+static bool isCONTROLpacket(char c, string packet_str, control_packet* outp) {
     if (packet_str.len == 0 || packet_str.s == NULL) return false;
 
     char control_char = packet_str.s[0];
@@ -68,7 +68,7 @@ bool isCONTROLpacket(char c, string packet_str, control_packet* outp) {
         if (j + l > packet_str.len) break;
 
         if (out.n == reserved) {
-            out.tlvs = realloc(out.tlvs, 2 * reserved);
+            out.tlvs = realloc(out.tlvs, 2 * reserved * sizeof(tlv));
             reserved *= 2;
         }
 
@@ -95,14 +95,14 @@ bool isCONTROLpacket(char c, string packet_str, control_packet* outp) {
     return b;
 }
 
-bool isSTARTpacket(string packet_str, control_packet* outp) {
+static bool isSTARTpacket(string packet_str, control_packet* outp) {
     bool b = isCONTROLpacket(PCONTROL_START, packet_str, outp);
 
     if (DEBUG) printf("[APP] isSTARTpacket() ? %d\n", (int)b);
     return b;
 }
 
-bool isENDpacket(string packet_str, control_packet* outp) {
+static bool isENDpacket(string packet_str, control_packet* outp) {
     bool b = isCONTROLpacket(PCONTROL_END, packet_str, outp);
 
     if (DEBUG) printf("[APP] isENDpacket() ? %d\n", (int)b);
@@ -123,8 +123,11 @@ bool get_tlv(control_packet control, char type, string* outp) {
     return false;
 }
 
-bool get_tlv_filename(control_packet control, string* outp) {
-    return get_tlv(control, PCONTROL_TYPE_FILENAME, outp);
+bool get_tlv_filename(control_packet control, char** outp) {
+    string value;
+    bool b = get_tlv(control, PCONTROL_TYPE_FILENAME, &value);
+    if (b) *outp = value.s;
+    return b;
 }
 
 bool get_tlv_filesize(control_packet control, size_t* outp) {
@@ -142,7 +145,7 @@ bool get_tlv_filesize(control_packet control, size_t* outp) {
     return true;
 }
 
-int build_data_packet(string fragment, char index, string* outp) {
+static int build_data_packet(string fragment, char index, string* outp) {
     static const size_t mod = 256;
     static const size_t max_len = 0x0ffff;
 
@@ -160,16 +163,17 @@ int build_data_packet(string fragment, char index, string* outp) {
     memcpy(data_packet.s + 4, fragment.s, fragment.len + 1);
 
     if (DEBUG) {
-        printf("[APP] Built DP %x %x %x %x\n", data_packet.s[0],
-            data_packet.s[1], data_packet.s[2], data_packet.s[3]);
-        print_stringn(data_packet);
+        printf("[APP] Built DP c=%x index=%x l2=%x l1=%x\n",
+            (unsigned char)data_packet.s[0], (unsigned char)data_packet.s[1],
+            (unsigned char)data_packet.s[2], (unsigned char)data_packet.s[3]);
+        if (TEXT_DEBUG) print_stringn(data_packet);
     }
 
     *outp = data_packet;
     return 0;
 }
 
-int build_tlv_str(char type, string value, string* outp) {
+static int build_tlv_str(char type, string value, string* outp) {
     static const size_t max_len = 0x0ff;
 
     if (value.len > max_len) return 1;
@@ -185,14 +189,14 @@ int build_tlv_str(char type, string value, string* outp) {
 
     if (DEBUG) {
         printf("[APP] Built TLV %x %lx\n", type, value.len);
-        print_stringn(tlv);
+        if (TEXT_DEBUG) print_stringn(tlv);
     }
 
     *outp = tlv;
     return 0;
 }
 
-int build_tlv_uint(char type, long unsigned value, string* outp) {
+static int build_tlv_uint(char type, long unsigned value, string* outp) {
     char buf[10];
     string tmp;
     tmp.s = buf;
@@ -201,7 +205,7 @@ int build_tlv_uint(char type, long unsigned value, string* outp) {
     return build_tlv_str(type, tmp, outp);
 }
 
-int build_control_packet(char control, string* tlvp, size_t n, string* outp) {
+static int build_control_packet(char control, string* tlvp, size_t n, string* outp) {
     string control_packet;
     control_packet.len = 1;
 
@@ -222,7 +226,7 @@ int build_control_packet(char control, string* tlvp, size_t n, string* outp) {
 
     if (DEBUG) {
         printf("[APP] Built CP %x\n", control);
-        print_stringn(control_packet);
+        if (TEXT_DEBUG) print_stringn(control_packet);
     }
 
     *outp = control_packet;
@@ -239,13 +243,14 @@ int send_data_packet(int fd, string packet) {
 
     if (DEBUG) {
         printf("[APP] Sending packet #%d\n", out_packet_index);
-        print_stringn(packet);
+        if (TEXT_DEBUG) print_stringn(packet);
     }
 
     string data_packet;
-    s = build_data_packet(packet, out_packet_index++ % 256lu, &data_packet);
+    s = build_data_packet(packet, out_packet_index % 256lu, &data_packet);
     if (s != 0) return s;
 
+    ++out_packet_index;
     s = llwrite(fd, data_packet);
     free(data_packet.s);
     return s;
@@ -311,7 +316,7 @@ int receive_packet(int fd, data_packet* datap, control_packet* controlp) {
     data_packet data;
     control_packet control;
 
-    if (DEBUG) {
+    if (DEBUG && TEXT_DEBUG) {
         printf("Whatis?\n");
         print_stringn(packet);
     }
@@ -321,7 +326,7 @@ int receive_packet(int fd, data_packet* datap, control_packet* controlp) {
         *controlp = control;
 
         free(packet.s);
-        return PCONTROL_START;
+        return PRECEIVE_START;
     }
 
     if (isDATApacket(packet, &data)) {
@@ -333,7 +338,7 @@ int receive_packet(int fd, data_packet* datap, control_packet* controlp) {
         *datap = data;
 
         free(packet.s);
-        return PCONTROL_DATA;
+        return PRECEIVE_DATA;
     }
 
     if (isENDpacket(packet, &control)) {
@@ -341,9 +346,9 @@ int receive_packet(int fd, data_packet* datap, control_packet* controlp) {
         *controlp = control;
 
         free(packet.s);
-        return PCONTROL_END;
+        return PRECEIVE_END;
     }
 
     free(packet.s);
-    return PCONTROL_BAD_PACKET;
+    return PRECEIVE_BAD_PACKET;
 }

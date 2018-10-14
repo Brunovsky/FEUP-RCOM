@@ -4,16 +4,6 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#define FRAME_A_COMMAND  0x03
-#define FRAME_A_RESPONSE 0x01
-
-#define FRAME_C_I(n)     (char)((n % 2) ? 0x01 : 0x00)
-#define FRAME_C_SET      (char)0x03
-#define FRAME_C_DISC     (char)0x0b
-#define FRAME_C_UA       (char)0x07
-#define FRAME_C_RR(n)    (char)((n % 2) ? 0x85 : 0x05)
-#define FRAME_C_REJ(n)   (char)((n % 2) ? 0x81 : 0x01)
-
 /**
  * Frames I, SET, DISC: Command
  *
@@ -83,7 +73,7 @@ int writeIframe(int fd, string message, int parity) {
 
     if (DEBUG) {
         printf("[LL] writeIframe(%d)\n", parity % 2);
-        print_stringn(message);
+        if (TEXT_DEBUG) print_stringn(message);
     }
     return writeFrame(fd, f);
 }

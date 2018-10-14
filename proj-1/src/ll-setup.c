@@ -5,6 +5,8 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <fcntl.h>
 #include <termios.h>
 #include <errno.h>
@@ -28,11 +30,11 @@ int setup_link_layer(const char* name) {
 
     int fd = open(name, O_RDWR | O_NOCTTY);
     if (fd < 0) {
-        perror("Failed to open terminal");
+        perror("[SETUP] Failed to open terminal");
         exit(EXIT_FAILURE);
     }
 
-    printf("Past open\n");
+    if (DEBUG) printf("[SETUP] Opened terminal\n");
 
     // Save current terminal settings in oldtios.
     if (tcgetattr(fd, &oldtios) == -1) {
@@ -62,7 +64,9 @@ int setup_link_layer(const char* name) {
         exit(EXIT_FAILURE);
     }
 
-    if (DEBUG) printf("Setup link layer on %s\n", name);
+    if (DEBUG) printf("[SETUP] Setup new terminal settings\n");
+
+    if (DEBUG) printf("[SETUP] Setup link layer on %s\n", name);
     return fd;
 }
 

@@ -16,6 +16,10 @@
 #define FILESIZE_TLV_N         0
 #define FILENAME_TLV_N         1
 
+#define PRECEIVE_DATA          0x51
+#define PRECEIVE_START         0x52
+#define PRECEIVE_END           0x53
+#define PRECEIVE_BAD_PACKET    0x54
 
 typedef struct {
     char type;
@@ -41,27 +45,9 @@ void free_data_packet(data_packet packet);
 
 bool get_tlv(control_packet controlp, char type, string* outp);
 
-bool get_tlv_filename(control_packet controlp, string* outp);
+bool get_tlv_filename(control_packet controlp, char** outp);
 
 bool get_tlv_filesize(control_packet controlp, size_t* outp);
-
-
-// These ought to be made private in the future
-int build_data_packet(string fragment, char index, string* outp);
-
-int build_tlv_str(char type, string value, string* outp);
-
-int build_tlv_uint(char type, long unsigned value, string* outp);
-
-int build_control_packet(char control, string* tlvp, size_t n, string* outp);
-
-bool isDATApacket(string packet_str, data_packet* outp);
-
-bool isCONTROLpacket(char c, string packet_str, control_packet* outp);
-
-bool isSTARTpacket(string packet_str, control_packet* outp);
-
-bool isENDpacket(string packet_str, control_packet* outp);
 
 
 int send_data_packet(int fd, string packet);

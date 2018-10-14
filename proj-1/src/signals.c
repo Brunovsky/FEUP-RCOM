@@ -44,7 +44,7 @@ int set_signal_handlers() {
     // Get current sigmask
     int s = sigprocmask(SIG_SETMASK, NULL, &current);
     if (s != 0) {
-        printf("Error getting process signal mask: %s\n", strerror(errno));
+        printf("[SIG] Error getting process signal mask: %s\n", strerror(errno));
         exit(EXIT_FAILURE);
     }
 
@@ -55,22 +55,22 @@ int set_signal_handlers() {
     action.sa_flags = SA_RESETHAND;
     s = sigaction(SIGHUP, &action, NULL);
     if (s != 0) {
-        printf("Error setting handler for SIGHUP: %s\n", strerror(errno));
+        printf("[SIG] Error setting handler for SIGHUP: %s\n", strerror(errno));
         exit(EXIT_FAILURE);
     }
     s = sigaction(SIGQUIT, &action, NULL);
     if (s != 0) {
-        printf("Error setting handler for SIGQUIT: %s\n", strerror(errno));
+        printf("[SIG] Error setting handler for SIGQUIT: %s\n", strerror(errno));
         exit(EXIT_FAILURE);
     }
     s = sigaction(SIGTERM, &action, NULL);
     if (s != 0) {
-        printf("Error setting handler for SIGTERM: %s\n", strerror(errno));
+        printf("[SIG] Error setting handler for SIGTERM: %s\n", strerror(errno));
         exit(EXIT_FAILURE);
     }
     s = sigaction(SIGINT, &action, NULL);
     if (s != 0) {
-        printf("Error setting handler for SIGINT: %s\n", strerror(errno));
+        printf("[SIG] Error setting handler for SIGINT: %s\n", strerror(errno));
         exit(EXIT_FAILURE);
     }
 
@@ -81,7 +81,7 @@ int set_signal_handlers() {
     action.sa_flags = SA_RESETHAND;
     s = sigaction(SIGABRT, &action, NULL);
     if (s != 0) {
-        printf("Error setting handler for SIGABRT: %s\n", strerror(errno));
+        printf("[SIG] Error setting handler for SIGABRT: %s\n", strerror(errno));
         exit(EXIT_FAILURE);
     }
 
@@ -92,11 +92,11 @@ int set_signal_handlers() {
     action.sa_flags = 0;
     s = sigaction(SIGALRM, &action, NULL);
     if (s != 0) {
-        printf("Error setting handler for SIGALRM: %s\n", strerror(errno));
+        printf("[SIG] Error setting handler for SIGALRM: %s\n", strerror(errno));
         exit(EXIT_FAILURE);
     }
 
-    if (DEBUG) printf("Set all signal handlers\n");
+    if (DEBUG) printf("[SIG] Set all signal handlers\n");
     return 0;
 }
 
@@ -115,7 +115,7 @@ void test_alarm() {
     
     s = usleep(UALARM_TEST_WAIT);
     if (s != 0) {
-        printf("Failed test_alarm() -- wait interrupted\n");
+        printf("[ALARM] Failed test_alarm() -- wait interrupted\n");
         exit(EXIT_FAILURE);
     }
 
@@ -123,11 +123,11 @@ void test_alarm() {
 
     s = usleep(UALARM_TEST_SLEEP);
     if (s != 0) {
-        printf("Failed test_alarm() -- sleep interrupted\n");
+        printf("[ALARM] Failed test_alarm() -- sleep interrupted\n");
         exit(EXIT_FAILURE);
     }
 
     unset_alarm();
 
-    if (DEBUG) printf("Passed test_alarm()\n");
+    if (DEBUG) printf("[ALARM] Passed test_alarm()\n");
 }

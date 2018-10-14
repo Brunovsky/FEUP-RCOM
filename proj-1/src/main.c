@@ -3,6 +3,7 @@
 #include "ll-interface.h"
 #include "app-layer.h"
 #include "signals.h"
+#include "fileio.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -21,23 +22,7 @@ static int main_transmitter() {
     test_alarm();
 
 
-    string message1 = {m1, strlen(m1)};
-    string message2 = {m2, strlen(m2)};
-    string message3 = {m3, strlen(m3)};
-    string message4 = {m4, strlen(m4)};
-
-    llopen(fd);
-
-    send_start_packet(fd, 73, m0);
-
-    send_data_packet(fd, message1);
-    send_data_packet(fd, message2);
-    send_data_packet(fd, message3);
-    send_data_packet(fd, message4);
-
-    send_end_packet(fd, 73, m0);
-
-    llclose(fd);
+    send_file(fd, "/tmp/lepenguin.jpg");
 
 
     sleep(1);
@@ -51,26 +36,8 @@ static int main_receiver() {
     test_alarm();
 
 
-    llopen(fd);
+    receive_file(fd);
 
-    data_packet dp, dp1, dp2, dp3, dp4;
-    control_packet cp, cp1, cp2;
-
-    receive_packet(fd, &dp, &cp1);
-    receive_packet(fd, &dp1, &cp);
-    receive_packet(fd, &dp2, &cp);
-    receive_packet(fd, &dp3, &cp);
-    receive_packet(fd, &dp4, &cp);
-    receive_packet(fd, &dp, &cp2);
-
-    llclose(fd);
-
-    free_data_packet(dp1);
-    free_data_packet(dp2);
-    free_data_packet(dp3);
-    free_data_packet(dp4);
-    free_control_packet(cp1);
-    free_control_packet(cp2);
 
     sleep(1);
     reset_link_layer(fd);

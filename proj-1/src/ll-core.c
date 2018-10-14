@@ -21,7 +21,7 @@
 // text/frame    | FH | PH |  Packet  | FT |      FH/FT = Frame Header/Trailer
 
 typedef enum {
-    READ_PRE_FRAME, READ_START_FLAG, READ_WITHIN_FRAME, READ_END_FLAG
+    READ_PRE_FRAME, READ_START_FLAG, READ_A, READ_WITHIN_FRAME, READ_END_FLAG
 } FrameReadState;
 
 static int stuffData(string in, string* outp, char* bcc2) {
@@ -90,6 +90,8 @@ static int destuffData(string in, string* outp, char* bcc2) {
                 destuffed_data.s[j] = FRAME_ESC;
                 break;
             default:
+                if (DEBUG) printf("[LL] Bad Escape [c=%c  %x]\n",
+                    in.s[i], (unsigned char)in.s[i]);
                 free(destuffed_data.s);
                 return FRAME_READ_BAD_ESCAPE;
             }
@@ -181,7 +183,7 @@ static int readText(int fd, string* textp) {
         char c = readbuf[0];
 
         if (DEEP_DEBUG) {
-            printf("[READ] s:%01d  c:%02x  state:%01d  |  %c\n",
+            printf("[LLREAD] s:%01d  c:%02x  state:%01d  |  %c\n",
                 (int)s, (unsigned char)c, state, c);
         }
 
@@ -189,14 +191,22 @@ static int readText(int fd, string* textp) {
 
         if (s == -1) {
             if (errno == EINTR) {
+                if (DEBUG) printf("[LL] Read Error: Timeout [len=%lu]\n", text.len);
                 free(text.s);
                 return FRAME_READ_TIMEOUT;
             } else if (errno == EIO) {
+                if (DEBUG) printf("[LL] Read Error: EIO [len=%lu]\n", text.len);
                 continue;
             } else {
+                if (DEBUG) printf("[LL] Read Error: Unknown [len=%lu]\n", text.len);
                 free(text.s);
                 return FRAME_READ_INVALID;
             }
+        }
+
+        if (text.len == reserved) {
+            text.s = realloc(text.s, 2 * reserved * sizeof(char));
+            reserved *= 2;
         }
 
         switch (state) {
@@ -208,8 +218,16 @@ static int readText(int fd, string* textp) {
             break;
         case READ_START_FLAG:
             if (c != FRAME_FLAG) {
-                state = READ_WITHIN_FRAME;
-                text.s[text.len++] = c;
+                if (FRAME_VALID_A(c)) {
+                    state = READ_WITHIN_FRAME;
+                    text.s[text.len++] = c;
+                } else {
+                    if (DEBUG) {
+                        printf("[LL] Read: Bad A 0x%x, back to pre-frame\n", c);
+                    }
+                    state = READ_PRE_FRAME;
+                    text.len = 0;
+                }
             }
             break;
         case READ_WITHIN_FRAME:
@@ -223,11 +241,6 @@ static int readText(int fd, string* textp) {
         case READ_END_FLAG:
         default:
             break;
-        }
-
-        if ((text.len + 1) == reserved) {
-            text.s = realloc(text.s, reserved * 2);
-            reserved *= 2;
         }
     }
 
@@ -257,6 +270,7 @@ int readFrame(int fd, frame* fp) {
     if (s != 0) return s;
 
     if (text.len < 5 || text.len == 6) {
+        if (DEBUG) printf("[LL] Invalid Frame: BAD LENGTH\n");
         free(text.s);
         return FRAME_READ_INVALID;
     }
@@ -270,6 +284,7 @@ int readFrame(int fd, frame* fp) {
     char bcc1 = text.s[3];
 
     if (bcc1 != (f.a ^ f.c)) {
+        if (DEBUG) printf("[LL] Invalid Frame: BAD BCC1\n");
         free(text.s);
         return FRAME_READ_INVALID;
     }
@@ -281,7 +296,14 @@ int readFrame(int fd, frame* fp) {
 
         if (s != 0) return FRAME_READ_INVALID;
 
-        if (bcc2 != text.s[text.len - 2]) {
+        char exp = text.s[text.len - 2];
+
+        if (bcc2 != exp) {
+            if (DEBUG) {
+                printf("[LL] Invalid Frame: BAD BCC2 [calc=%x,exp=%x] [len=%lu]\n",
+                    (unsigned char)bcc2, (unsigned char)exp, data.len);
+                if (TEXT_DEBUG) print_stringn(data);
+            }
             free(text.s);
             free(data.s);
             return FRAME_READ_INVALID;
