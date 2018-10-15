@@ -28,6 +28,6 @@
 #define TRACE_SIG 1
 
 // Dump Options
-#define DUMP_OPTIONS 1
+#define DUMP_OPTIONS 0
 
 #endif // DEBUG_H___
