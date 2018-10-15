@@ -102,6 +102,9 @@ int reset_link_layer(int fd) {
         close(fd);
         return 1;
     } else {
+        if (TRACE_SETUP) {
+            printf("[RESET] Reset device\n");
+        }
         close(fd);
         return 0;
     }

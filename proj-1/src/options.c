@@ -15,6 +15,7 @@
 static int show_help = false; // h, help
 static int show_usage = false; // usage
 static int show_version = false; // V, version
+static int dump = false; // dump
 
 int time_retries = TIME_RETRIES_DEFAULT; // time-retries
 int answer_retries = ANSWER_RETRIES_DEFAULT; // answer-retries
@@ -37,6 +38,7 @@ static const struct option long_options[] = {
     {HELP_LFLAG,                    no_argument, &show_help,          true},
     {USAGE_LFLAG,                   no_argument, &show_usage,         true},
     {VERSION_LFLAG,                 no_argument, &show_version,       true},
+    {DUMP_LFLAG,                    no_argument, &dump,               true},
 
     {TIME_RETRIES_LFLAG,      required_argument, NULL,   TIME_RETRIES_FLAG},
     {ANSWER_RETRIES_LFLAG,    required_argument, NULL, ANSWER_RETRIES_FLAG},
@@ -77,6 +79,7 @@ static const wchar_t* usage = L"usage: ll [option]... files...\n"
     "      --help,                                                           \n"
     "      --usage                  Show this message and exit               \n"
     "  -V, --version                Show 'version' message and exit          \n"
+    "      --dump                   Dump options and exit                    \n"
     "                                                                        \n"
     "Options:                                                                \n"
     "      --time-retries=N         Write stop&wait attempts for the         \n"
@@ -85,12 +88,13 @@ static const wchar_t* usage = L"usage: ll [option]... files...\n"
     "      --answer-retries=N       Write stop&wait attempts for the         \n"
     "                               link-layer when an answer is invalid.    \n"
     "                                Default is 5                            \n"
-    "      --timeout=N              Read timeout for the link-layer, in ds.  \n"
-    "                                Default is 10 (1s)                      \n"
+    "      --timeout=N              Timeout for the link-layer, in ds.       \n"
+    "                               Applies to writes' alarms and reads      \n"
+    "                                Default is 10                           \n"
     "  -d, --device=S               Set the device to use.                   \n"
     "                                Default is /dev/ttyS0                   \n"
     "  -p, --packetsize=N           Set the packets' size, in bytes.         \n"
-    "                                Default is 128 bytes                    \n"
+    "                                Default is 1024 bytes                   \n"
     "      --filesize,                                                       \n"
     "      --no-filesize            Send filesize in START packet.           \n"
     "      --filename,                                                       \n"
@@ -104,11 +108,7 @@ static const wchar_t* usage = L"usage: ll [option]... files...\n"
 /**
  * Free all resources allocated to contain options by parse_args.
  */
-static void clear_options() {    
-    for (size_t i = 0; i < number_of_files; ++i) {
-        free(files[i]);
-    }
-
+static void clear_options() {
     free(files);
 }
 
@@ -139,50 +139,42 @@ static void dump_options() {
     }
 }
 
-static void print_all() {
-    if (DUMP_OPTIONS) dump_options();
-
-    setlocale(LC_ALL, "");
-    printf("%ls%ls", usage, version);
-    exit(EXIT_SUCCESS);
-}
-
-static void print_usage() {
-    if (DUMP_OPTIONS) dump_options();
+static void exit_usage() {
+    if (DUMP_OPTIONS || dump) dump_options();
     
     setlocale(LC_ALL, "");
     printf("%ls", usage);
     exit(EXIT_SUCCESS);
 }
 
-static void print_version() {
-    if (DUMP_OPTIONS) dump_options();
+static void exit_version() {
+    if (DUMP_OPTIONS || dump) dump_options();
     
     setlocale(LC_ALL, "");
     printf("%ls", version);
     exit(EXIT_SUCCESS);
 }
 
-static void print_numpositional(int n) {
-    if (DUMP_OPTIONS) dump_options();
+static void exit_nofiles() {
+    if (DUMP_OPTIONS || dump) dump_options();
     
     setlocale(LC_ALL, "");
-    printf("[ARGS] Error: Expected 1 or more positional arguments (filenames), but got %d.\n", n);
+    printf("[ARGS] Error: Expected 1 or more positionals (filenames), but got none.\n");
     printf("%ls", usage);
     exit(EXIT_SUCCESS);
 }
 
-static void print_badpositional(int i) {
-    if (DUMP_OPTIONS) dump_options();
+static void exit_nonumber(int n) {
+    if (DUMP_OPTIONS || dump) dump_options();
     
     setlocale(LC_ALL, "");
-    printf("[ARGS] Error: Positional argument #%d is invalid.\n", i);
+    printf("[ARGS] Error: Expected 1 positionals (number of files), but got %d.\n", n);
     printf("%ls", usage);
     exit(EXIT_SUCCESS);
 }
 
-static void print_badarg(const char* option) {
-    if (DUMP_OPTIONS) dump_options();
+static void exit_badarg(const char* option) {
+    if (DUMP_OPTIONS || dump) dump_options();
     
     setlocale(LC_ALL, "");
     wprintf(L"[ARGS] Error: Bad argument for option %s.\n%S", option, usage);
@@ -205,7 +197,7 @@ static int parse_ulong(const char* str, size_t* outp) {
     char* endp;
     long result = strtol(str, &endp, 10);
 
-    if (endp == str || errno == ERANGE || result <= 0) {
+    if (endp == str || errno == ERANGE || result < 0) {
         return 1;
     }
 
@@ -253,26 +245,26 @@ void parse_args(int argc, char** argv) {
             show_version = true;
             break;
         case TIME_RETRIES_FLAG:
-            if (parse_int(optarg, &time_retries) != 0) {
-                print_badarg(TIME_RETRIES_LFLAG);
+            if (parse_int(optarg, &time_retries) != 0 || time_retries <= 0) {
+                exit_badarg(TIME_RETRIES_LFLAG);
             }
             break;
         case ANSWER_RETRIES_FLAG:
-            if (parse_int(optarg, &answer_retries) != 0) {
-                print_badarg(ANSWER_RETRIES_LFLAG);
+            if (parse_int(optarg, &answer_retries) != 0 || answer_retries <= 0) {
+                exit_badarg(ANSWER_RETRIES_LFLAG);
             }
             break;
         case TIMEOUT_FLAG:
-            if (parse_int(optarg, &timeout) != 0) {
-                print_badarg(TIMEOUT_LFLAG);
+            if (parse_int(optarg, &timeout) != 0 || timeout <= 0) {
+                exit_badarg(TIMEOUT_LFLAG);
             }
             break;
         case DEVICE_FLAG:
             device = optarg;
             break;
         case PACKETSIZE_FLAG:
-            if (parse_ulong(optarg, &packetsize) != 0) {
-                print_badarg(PACKETSIZE_LFLAG);
+            if (parse_ulong(optarg, &packetsize) != 0 || packetsize == 0) {
+                exit_badarg(PACKETSIZE_LFLAG);
             }
             break;
         case TRANSMITTER_FLAG:
@@ -284,29 +276,45 @@ void parse_args(int argc, char** argv) {
         case '?':
         default:
             // getopt_long already printed an error message.
-            print_usage();
+            exit_usage();
         }
     } // End Options loop
 
     if (show_help || show_usage) {
-        print_usage();
+        exit_usage();
     }
 
     if (show_version) {
-        print_version();
+        exit_version();
     }
 
     // Positional arguments processing
-    if (optind < argc) {
-        number_of_files = argc - optind;
-        files = calloc(number_of_files + 1, sizeof(char*));
-        
-        size_t i = 0;
+    switch (my_role) {
+    case TRANSMITTER:
+        if (optind == argc) {
+            exit_nofiles();
+        }
 
-        do {
-            files[i++] = strdup(argv[optind++]);
-        } while (optind < argc);
+        number_of_files = argc - optind;
+        files = malloc(number_of_files * sizeof(char*));
+        
+        for (size_t i = 0; i < number_of_files; ++i, ++optind) {
+            files[i] = argv[optind];
+        }
+    
+        break;
+    case RECEIVER:
+        if (optind + 1 != argc) {
+            exit_nonumber(argc - optind);
+        }
+        
+        if (parse_ulong(argv[optind++], &number_of_files) != 0 || number_of_files == 0) {
+            exit_badarg("number_of_files");
+        }
+
+        break;
     }
 
-    if (DUMP_OPTIONS) dump_options();
+    if (DUMP_OPTIONS || dump) dump_options();
+    if (dump) exit(EXIT_SUCCESS);
 }

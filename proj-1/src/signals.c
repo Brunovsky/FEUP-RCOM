@@ -8,14 +8,15 @@
 #include <stdio.h>
 #include <signal.h>
 #include <errno.h>
+#include <sys/time.h>
 
-#define UALARM_TEST_SET           2500
-#define UALARM_TEST_SHORT_SLEEP   500
-#define UALARM_TEST_LONG_SLEEP    5500
+#define ALARM_TEST_SET           2500
+#define ALARM_TEST_SHORT_SLEEP   500
+#define ALARM_TEST_LONG_SLEEP    8500
 
-static const char str_kill[]  = " -- Terminating...\n";
-static const char str_abort[] = " -- Aborting...\n";
-static const char str_alarm[] = " -- Alarmed...\n";
+static const char str_kill[]  = "[SIG] -- Terminating...\n";
+static const char str_abort[] = "[SIG] -- Aborting...\n";
+static const char str_alarm[] = "[SIG] -- Alarmed...\n";
 
 static volatile sig_atomic_t alarmed = 0;
 
@@ -103,13 +104,28 @@ int set_signal_handlers() {
     return 0;
 }
 
-void set_alarm() {
-    ualarm(timeout * 1e5, 0);
+static void set_alarm_general(unsigned long us) {
+    static const unsigned long mill = 1000000lu;
+    const struct itimerval new_value = {
+        .it_interval = {0, 0},
+        .it_value = {us / mill, us % mill}
+    };
+
+    setitimer(ITIMER_REAL, &new_value, NULL);
     alarmed = 0;
 }
 
+void set_alarm() {
+    set_alarm_general((unsigned long)timeout * 1e5);
+}
+
 void unset_alarm() {
-    ualarm(0, 0);
+    static const struct itimerval new_value = {
+        .it_interval = {0, 0},
+        .it_value = {0, 0}
+    };
+
+    setitimer(ITIMER_REAL, &new_value, NULL);
     alarmed = 0;
 }
 
@@ -122,23 +138,25 @@ bool was_alarmed() {
 void test_alarm() {
     int s;
 
-    ualarm(UALARM_TEST_SET, 0);
-           
-    s = usleep(UALARM_TEST_SHORT_SLEEP);
-    if (s !=        0) {
+    // Short sleep test
+    set_alarm_general(ALARM_TEST_SET);
+
+    s = usleep(ALARM_TEST_SHORT_SLEEP);
+    if (s != 0) {
         printf("[ALARM] Failed test_alarm() -- short sleep interrupted\n");
         exit(EXIT_FAILURE);
     }
 
-    ualarm(0, 0);
+    set_alarm_general(ALARM_TEST_SET);
 
-    s = usleep(UALARM_TEST_LONG_SLEEP);
-    if (s != 0) {
-        printf("[ALARM] Failed test_alarm() -- long sleep interrupted\n");
+    s = usleep(ALARM_TEST_LONG_SLEEP);
+    if (s == 0 || errno != EINTR) {
+        printf("[ALARM] Failed test_alarm() -- long sleep not interrupted\n");
         exit(EXIT_FAILURE);
     }
 
-    ualarm(0, 0);
+    unset_alarm();
+    errno = 0;
 
     if (TRACE_SETUP) printf("[ALARM] Passed test_alarm()\n");
 }

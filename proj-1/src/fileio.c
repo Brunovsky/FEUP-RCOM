@@ -11,6 +11,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <errno.h>
 
 static void free_packets(string* packets, size_t number_packets) {
     for (size_t i = 0; i < number_packets; ++i) {
@@ -24,13 +25,15 @@ int send_file(int fd, char* filename) {
 
     int filefd = open(filename, O_RDONLY);
     if (filefd == -1) {
-        perror("[FILE] Failed to open file");
+        printf("[FILE] Error: Failed to open file %s [%s]\n",
+            filename, strerror(errno));
         return 1;
     }
 
     FILE* file = fdopen(filefd, "r");
     if (file == NULL) {
-        perror("[FILE] Failed to open file stream");
+        printf("[FILE] Error: Failed to open file stream %s [%s]\n",
+            filename, strerror(errno));
         close(filefd);
         return 1;
     }
@@ -38,7 +41,8 @@ int send_file(int fd, char* filename) {
     // Seek to the end of the file to extract its size.
     s = fseek(file, 0, SEEK_END);
     if (s != 0) {
-        perror("[FILE] Failed to seek file");
+        printf("[FILE] Error: Failed to seek file %s [%s]\n",
+            filename, strerror(errno));
         fclose(file);
         return 1;
     }
@@ -48,7 +52,8 @@ int send_file(int fd, char* filename) {
     rewind(file);
 
     if (lfs <= 0) {
-        printf("[FILE] Error: filesize could not be read, or file is empty\n");
+        printf("[FILE] Error: Invalid filesize %ld (pob. 0) %s\n",
+            filesize, filename);
         fclose(file);
         return 1;
     }
@@ -260,4 +265,20 @@ error:
     free_packets(packets, number_packets);
     free(filename);
     return 1;
+}
+
+int send_files(int fd) {
+    for (size_t i = 0; i < number_of_files; ++i) {
+        int s = send_file(fd, files[i]);
+        if (s != 0) return 1;
+    }
+    return 0;
+}
+
+int receive_files(int fd) {
+    for (size_t i = 0; i < number_of_files; ++i) {
+        int s = receive_file(fd);
+        if (s != 0) return 1;
+    }
+    return 0;
 }

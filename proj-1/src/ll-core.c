@@ -370,14 +370,17 @@ int writeFrame(int fd, frame f) {
     buildText(f, &text);
 
     set_alarm();
+    errno = 0;
     ssize_t s = write(fd, text.s, text.len);
 
+    int err = errno;
     bool b = was_alarmed();
+    unset_alarm();
     
-    if (b || (s == -1 && errno == EINTR)) {
+    if (b || err == EINTR) {
         if (TRACE_LL) {
-            printf("[LL] Write Frame: Timeout [alarm=%d s=%d errno=%d]",
-                (int)b, (int)s, errno);
+            printf("[LL] Write Frame: Timeout [alarm=%d s=%d errno=%d] [%s]\n",
+                (int)b, (int)s, err, strerror(err));
         }
         free(text.s);
         return FRAME_WRITE_TIMEOUT;

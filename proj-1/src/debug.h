@@ -10,7 +10,7 @@
 #define TRACE_LL 0
 
 // Trace APP behaviour
-#define TRACE_APP 0
+#define TRACE_APP 1
 
 // Trace FILE behaviour
 #define TRACE_FILE 1

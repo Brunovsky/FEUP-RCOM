@@ -28,6 +28,10 @@
 // Show version message and exit
 #define VERSION_FLAG 'V'
 #define VERSION_LFLAG "version"
+
+// Dump options and exit
+#define DUMP_FLAG // none
+#define DUMP_LFLAG "dump"
 // ----> END OF GENERAL OPTIONS
 
 
@@ -37,12 +41,12 @@
 // receiver does not acknowledge the frame.
 #define TIME_RETRIES_FLAG '0'
 #define TIME_RETRIES_LFLAG "time-retries"
-#define TIME_RETRIES_DEFAULT 5
+#define TIME_RETRIES_DEFAULT 3
 extern int time_retries;
 
 #define ANSWER_RETRIES_FLAG '1'
 #define ANSWER_RETRIES_LFLAG "answer-retries"
-#define ANSWER_RETRIES_DEFAULT 3
+#define ANSWER_RETRIES_DEFAULT 5
 extern int answer_retries;
 
 // Set timeout in deciseconds for link-layer communications.
@@ -60,7 +64,7 @@ extern char* device;
 // Set packet size, in bytes
 #define PACKETSIZE_FLAG 'p'
 #define PACKETSIZE_LFLAG "packetsize"
-#define PACKETSIZE_DEFAULT 128
+#define PACKETSIZE_DEFAULT 1024
 extern size_t packetsize;
 
 // Send or do not send filesize in START packet
@@ -86,6 +90,12 @@ extern int send_filename;
 #define DEFAULT_ROLE RECEIVER
 extern int my_role;
 // ----> END OF OPTIONS
+
+// <!--- POSITIONAL
+extern char** files;
+
+extern size_t number_of_files;
+// ----> END POSITIONAL
 
 void parse_args(int argc, char** argv);
 

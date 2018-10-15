@@ -21,15 +21,14 @@ int main(int argc, char** argv) {
     adjust_args();
 
     set_signal_handlers();
-    
     test_alarm();
     
     int fd = setup_link_layer(device);
 
     if (my_role == TRANSMITTER) {
-        send_file(fd, "/tmp/lepenguin.jpg");
+        send_files(fd);
     } else {
-        receive_file(fd);
+        receive_files(fd);
     }
 
     sleep(1);
