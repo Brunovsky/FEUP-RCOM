@@ -7,7 +7,7 @@
 //#define NDEBUG
 
 // Trace LL behaviour
-#define TRACE_LL 0
+#define TRACE_LL 1
 
 // Trace APP behaviour
 #define TRACE_APP 1

@@ -25,6 +25,8 @@ size_t packetsize = PACKETSIZE_DEFAULT; // p, packetsize
 int send_filesize = PACKET_FILESIZE_DEFAULT; // filesize, no-filesize
 int send_filename = PACKET_FILENAME_DEFAULT; // filename, no-filename
 int my_role = DEFAULT_ROLE; // t, transmitter, r, receiver
+double h_error_prob = H_ERROR_PROB_DEFAULT; //header_p
+double f_error_prob = F_ERROR_PROB_DEFAULT; //header_f
 
 // Positional
 char** files = NULL;
@@ -51,6 +53,8 @@ static const struct option long_options[] = {
     {PACKET_NOFILENAME_LFLAG,       no_argument, &send_filename,     false},
     {TRANSMITTER_LFLAG,             no_argument, NULL,    TRANSMITTER_FLAG},
     {RECEIVER_LFLAG,                no_argument, NULL,       RECEIVER_FLAG},
+    {HEADER_ERROR_P_LFLAG,    required_argument, NULL, HEADER_ERROR_P_FLAG},
+    {FRAME_ERROR_P_LFLAG,     required_argument, NULL,  FRAME_ERROR_P_FLAG},
     // end of options
     {0, 0, 0, 0}
     // format: {const char* lflag, int has_arg, int* flag, int val}
@@ -68,7 +72,7 @@ static const char* short_options = "Vhd:p:i:rt";
 static const wchar_t* version = L"FEUP RCOM 2018-2019\n"
     "RCOM Comunicação Série v1.0\n"
     "  Bruno Carvalho     up201606517\n"
-    "  João Malheiro      up123456789\n"
+    "  João Malheiro      up201605926\n"
     "  Daniel Gomes       up123456789\n"
     "\n";
 
@@ -112,6 +116,10 @@ static const wchar_t* usage = L"usage:\n"
     "  -t, --transmitter,                                                 \n"
     "  -r, --receiver               Set the program's role.               \n"
     "                                Default is Receiver                  \n"
+    "      --h_error_prob           Probability of inputing an error in   \n"
+    "                               a read frame's header                 \n"
+    "      --f_error_prob           Probability of inputing an error in   \n"
+    "                               a read frame's data                   \n"
     "\n";
 
 /**
@@ -135,11 +143,13 @@ static void dump_options() {
         " send_filename: %d\n"
         " my_role: %d (T=%d, R=%d)\n"
         " number_of_files: %d\n"
-        " files: 0x%08x\n";
+        " files: 0x%08x\n"
+        " h_error_prob: %lf\n"
+        " f_error_prob: %lf\n";
 
     printf(dump_string, show_help, show_usage, show_version, time_retries,
         answer_retries, timeout, device, packetsize, send_filesize,
-        send_filename, my_role, TRANSMITTER, RECEIVER, number_of_files, files);
+        send_filename, my_role, TRANSMITTER, RECEIVER, number_of_files, files, h_error_prob, f_error_prob);
 
     if (files != NULL) {
         for (size_t i = 0; i < number_of_files; ++i) {
@@ -150,7 +160,7 @@ static void dump_options() {
 
 static void exit_usage() {
     if (DUMP_OPTIONS || dump) dump_options();
-    
+
     setlocale(LC_ALL, "");
     printf("%ls", usage);
     exit(EXIT_SUCCESS);
@@ -158,7 +168,7 @@ static void exit_usage() {
 
 static void exit_version() {
     if (DUMP_OPTIONS || dump) dump_options();
-    
+
     setlocale(LC_ALL, "");
     printf("%ls", version);
     exit(EXIT_SUCCESS);
@@ -166,7 +176,7 @@ static void exit_version() {
 
 static void exit_nofiles() {
     if (DUMP_OPTIONS || dump) dump_options();
-    
+
     setlocale(LC_ALL, "");
     printf("[ARGS] Error: Expected 1 or more positionals (filenames), but got none.\n");
     printf("%ls", usage);
@@ -175,7 +185,7 @@ static void exit_nofiles() {
 
 static void exit_nonumber(int n) {
     if (DUMP_OPTIONS || dump) dump_options();
-    
+
     setlocale(LC_ALL, "");
     printf("[ARGS] Error: Expected 1 positionals (number of files), but got %d.\n", n);
     printf("%ls", usage);
@@ -184,7 +194,7 @@ static void exit_nonumber(int n) {
 
 static void exit_badarg(const char* option) {
     if (DUMP_OPTIONS || dump) dump_options();
-    
+
     setlocale(LC_ALL, "");
     wprintf(L"[ARGS] Error: Bad argument for option %s.\n%S", option, usage);
     exit(EXIT_SUCCESS);
@@ -199,6 +209,18 @@ static int parse_int(const char* str, int* outp) {
     }
 
     *outp = (int)result;
+    return 0;
+}
+
+static int parse_double(const char* str, double* outp) {
+    char* endp;
+    double result = strtod(str, &endp);
+
+    if (endp == str || errno == ERANGE) {
+        return 1;
+    }
+
+    *outp = result;
     return 0;
 }
 
@@ -282,6 +304,16 @@ void parse_args(int argc, char** argv) {
         case RECEIVER_FLAG:
             my_role = RECEIVER;
             break;
+        case HEADER_ERROR_P_FLAG:
+            if(parse_double(optarg,&h_error_prob) != 0 || h_error_prob < 0 || h_error_prob >=1){
+              exit_badarg(HEADER_ERROR_P_LFLAG);
+            }
+            break;
+        case FRAME_ERROR_P_FLAG:
+            if(parse_double(optarg,&f_error_prob) != 0 || f_error_prob < 0 || f_error_prob >=1){
+              exit_badarg(FRAME_ERROR_P_LFLAG);
+            }
+            break;
         case '?':
         default:
             // getopt_long already printed an error message.
@@ -306,17 +338,17 @@ void parse_args(int argc, char** argv) {
 
         number_of_files = argc - optind;
         files = malloc(number_of_files * sizeof(char*));
-        
+
         for (size_t i = 0; i < number_of_files; ++i, ++optind) {
             files[i] = argv[optind];
         }
-    
+
         break;
     case RECEIVER:
         if (optind + 1 != argc) {
             exit_nonumber(argc - optind);
         }
-        
+
         if (parse_ulong(argv[optind++], &number_of_files) != 0 || number_of_files == 0) {
             exit_badarg("number_of_files");
         }

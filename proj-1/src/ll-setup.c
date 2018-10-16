@@ -11,7 +11,7 @@
 #include <termios.h>
 #include <errno.h>
 
-#define BAUDRATE B115200
+#define BAUDRATE B38400
 
 static struct termios oldtios;
 
@@ -50,7 +50,7 @@ int setup_link_layer(const char* name) {
     // IGNPAR :- Ignore framing errors and parity errors
     // ...
     newtio.c_iflag = IGNPAR;
-    
+
     // c_oflag   Output delay...
     // ...
     newtio.c_oflag = 0;
@@ -92,7 +92,7 @@ int setup_link_layer(const char* name) {
 
 /**
  * Resets the terminal's settings to the old ones.
- * 
+ *
  * @param  fd The terminal's open file descriptor
  * @return 0 if successful, 1 otherwise.
  */
