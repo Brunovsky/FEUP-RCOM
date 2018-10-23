@@ -238,7 +238,15 @@ static char corruptByte(char byte) {
     return byte ^ (1 << (rand() % 8));
 }
 
-static int introduceErrors(string text){
+static int introduceErrors(string text) {
+    if (error_type == ETYPE_BYTE) {
+        return introduceErrorsByte(text);
+    } else if (error_type == ETYPE_FRAME) {
+        return introduceErrorsFrame(text);
+    }
+}
+
+static int introduceErrorsByte(string text) {
     int header_p = RAND_MAX * h_error_prob;
     int frame_p = RAND_MAX * f_error_prob;
 
@@ -255,6 +263,29 @@ static int introduceErrors(string text){
 
         if (frame_r < frame_p) {
             text.s[i] = corruptByte(text.s[i]);
+        }
+    }
+
+    return 0;
+}
+
+static int introduceErrorsFrame(string text) {
+    int header_p = RAND_MAX * h_error_prob;
+    int frame_p = RAND_MAX * f_error_prob;
+
+    int header_r = rand();
+    int header_b = 1 + (rand() % 3);
+
+    if (header_r < header_p) {
+        text.s[header_b] = corruptByte(text.s[header_b]);
+    }
+
+    if (text.len > 5) {
+        int frame_r = rand();
+        int frame_b = 4 + (rand() % (text.len - 5));
+
+        if (frame_r < frame_p) {
+            text.s[frame_b] = corruptByte(text.s[frame_b]);
         }
     }
 

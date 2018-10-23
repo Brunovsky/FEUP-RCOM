@@ -90,14 +90,22 @@ extern int send_filename;
 #define DEFAULT_ROLE RECEIVER
 extern int my_role;
 
-#define HEADER_ERROR_P_LFLAG "header-p"
-#define FRAME_ERROR_P_LFLAG "frame-p"
 #define HEADER_ERROR_P_FLAG '3'
 #define FRAME_ERROR_P_FLAG '4'
+#define HEADER_ERROR_P_LFLAG "header-p"
+#define FRAME_ERROR_P_LFLAG "frame-p"
 #define H_ERROR_PROB_DEFAULT 0.0
 #define F_ERROR_PROB_DEFAULT 0.0
 extern double h_error_prob;
 extern double f_error_prob;
+
+#define ETYPE_FLAG // none
+#define ETYPE_BYTE_LFLAG "error-byte"
+#define ETYPE_FRAME_LFLAG "error-frame"
+#define ETYPE_BYTE 0x71
+#define ETYPE_FRAME 0x72
+#define ETYPE_DEFAULT ETYPE_BYTE
+extern int error_type;
 // ----> END OF OPTIONS
 
 // <!--- POSITIONAL

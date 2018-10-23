@@ -27,6 +27,7 @@ int send_filename = PACKET_FILENAME_DEFAULT; // filename, no-filename
 int my_role = DEFAULT_ROLE; // t, transmitter, r, receiver
 double h_error_prob = H_ERROR_PROB_DEFAULT; //header_p
 double f_error_prob = F_ERROR_PROB_DEFAULT; //header_f
+int error_type = ETYPE_DEfAULT; // error-byte, error-frame
 
 // Positional
 char** files = NULL;
@@ -55,6 +56,8 @@ static const struct option long_options[] = {
     {RECEIVER_LFLAG,                no_argument, NULL,       RECEIVER_FLAG},
     {HEADER_ERROR_P_LFLAG,    required_argument, NULL, HEADER_ERROR_P_FLAG},
     {FRAME_ERROR_P_LFLAG,     required_argument, NULL,  FRAME_ERROR_P_FLAG},
+    {ETYPE_BYTE_LFLAG,              no_argument, &error_type,   ETYPE_BYTE},
+    {ETYPE_FRAME_LFLAG,             no_argument, &error_type,  ETYPE_FRAME},
     // end of options
     {0, 0, 0, 0}
     // format: {const char* lflag, int has_arg, int* flag, int val}
@@ -116,10 +119,13 @@ static const wchar_t* usage = L"usage:\n"
     "  -t, --transmitter,                                                 \n"
     "  -r, --receiver               Set the program's role.               \n"
     "                                Default is Receiver                  \n"
-    "      --h_error_prob           Probability of inputing an error in   \n"
+    "      --header-p               Probability of inputing an error in   \n"
     "                               a read frame's header                 \n"
-    "      --f_error_prob           Probability of inputing an error in   \n"
+    "      --frame-p                Probability of inputing an error in   \n"
     "                               a read frame's data                   \n"
+    "      --error-byte,                                                  \n"
+    "      --error-frame            Introduce the errors per byte         \n"
+    "                               or per frame.                         \n"
     "\n";
 
 /**
@@ -305,13 +311,15 @@ void parse_args(int argc, char** argv) {
             my_role = RECEIVER;
             break;
         case HEADER_ERROR_P_FLAG:
-            if(parse_double(optarg,&h_error_prob) != 0 || h_error_prob < 0 || h_error_prob >=1){
-              exit_badarg(HEADER_ERROR_P_LFLAG);
+            if (parse_double(optarg,&h_error_prob) != 0
+              || h_error_prob < 0 || h_error_prob >= 1) {
+                exit_badarg(HEADER_ERROR_P_LFLAG);
             }
             break;
         case FRAME_ERROR_P_FLAG:
-            if(parse_double(optarg,&f_error_prob) != 0 || f_error_prob < 0 || f_error_prob >=1){
-              exit_badarg(FRAME_ERROR_P_LFLAG);
+            if (parse_double(optarg,&f_error_prob) != 0
+              || f_error_prob < 0 || f_error_prob >= 1) {
+                exit_badarg(FRAME_ERROR_P_LFLAG);
             }
             break;
         case '?':
