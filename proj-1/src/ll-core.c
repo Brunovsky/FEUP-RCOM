@@ -21,7 +21,7 @@
  * through the out argument bcc2.
  *
  * This function does not fail.
- * 
+ *
  * @param  in    String to be stuffed
  * @param  outp  [out] Stuffed string, appended with computed bcc2
  * @param  bcc2p [out] Computed bcc2
@@ -85,7 +85,7 @@ static int stuffData(string in, string* outp, char* bcc2p) {
  * A bcc2 is presumed to be found at the end of in, possibly escaped.
  * This character is removed, and not written to string out.
  * The data's bcc2.is computed returned through the out argument bcc2.
- * 
+ *
  * @param  in    String to be destuffed
  * @param  outp  [out] Destuffed string, without appended bcc2
  * @param  bcc2p [out] Computed bcc2
@@ -155,7 +155,7 @@ static int destuffData(string in, string* outp, char* bcc2p) {
 /**
  * A wrapper function for destuffData, which first extracts
  * the data fragment a string from the frame string text.
- * 
+ *
  * @param  text Full frame text
  * @param  outp [out] Destuffed data string
  * @param  bcc2 [out] Computed bcc2
@@ -180,7 +180,7 @@ static int destuffText(string text, string* outp, char* bcc2) {
  * Constructs the frame string text from a frame struct.
  *
  * This function does not fail.
- * 
+ *
  * @param  f     Frame to be stringified
  * @param  textp [out] Stringified frame
  * @return 0
@@ -234,6 +234,33 @@ typedef enum {
     READ_PRE_FRAME, READ_START_FLAG, READ_WITHIN_FRAME, READ_END_FLAG
 } FrameReadState;
 
+static char corruptByte(char byte) {
+    return byte ^ (1 << (rand() % 8));
+}
+
+static int introduceErrors(string text){
+    int header_p = RAND_MAX * h_error_prob;
+    int frame_p = RAND_MAX * f_error_prob;
+
+    for (size_t i = 1; i < 4; ++i) {
+        int header_r = rand();
+
+        if (header_r < header_p) {
+            text.s[i] = corruptByte(text.s[i]);
+        }
+    }
+
+    for (size_t i = 4; i < text.len - 1; ++i) {
+        int frame_r = rand();
+
+        if (frame_r < frame_p) {
+            text.s[i] = corruptByte(text.s[i]);
+        }
+    }
+
+    return 0;
+}
+
 /**
  * Primary Link Layer reading function.
  *
@@ -244,7 +271,7 @@ typedef enum {
  * otherwise it assumes it is reading noise.
  *
  * Enable DEEP_DEBUG in debug.h to echo characters read in the terminal.
- * 
+ *
  * @param  fd    Communications file descriptor
  * @param  textp [out] Frame text read
  * @return 0 if successful
@@ -352,15 +379,14 @@ static int readText(int fd, string* textp) {
 
     text.s[text.len] = '\0';
 
+    introduceErrors(text);
+
     *textp = text;
     return 0;
 }
 
 /**
  * Writes a frame to communication device.
- *
- * [TODO] The write is not verified yet. It fails if the reading end is closed.
- * 
  * @param  fd Communications file descriptor
  * @param  f  Frame to be written
  * @return 0
@@ -376,7 +402,7 @@ int writeFrame(int fd, frame f) {
     int err = errno;
     bool b = was_alarmed();
     unset_alarm();
-    
+
     if (b || err == EINTR) {
         if (TRACE_LL) {
             printf("[LL] Write Frame: Timeout [alarm=%d s=%d errno=%d] [%s]\n",
@@ -392,7 +418,7 @@ int writeFrame(int fd, frame f) {
 
 /**
  * Reads a frame from communication device.
- * 
+ *
  * @param  fd Communications file descriptor
  * @param  fp [out] Frame read
  * @return FRAME_READ_OK if successful
