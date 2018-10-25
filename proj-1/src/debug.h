@@ -1,13 +1,16 @@
 #ifndef DEBUG_H___
 #define DEBUG_H___
 
-#include <assert.h>
-
 // Call asserts
 //#define NDEBUG
 
+#include <assert.h>
+
 // Trace LL behaviour
 #define TRACE_LL 1
+
+// Trace IntroduceError behaviour
+#define TRACE_ERRORS 1
 
 // Trace APP behaviour
 #define TRACE_APP 1

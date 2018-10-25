@@ -254,7 +254,14 @@ static int introduceErrorsByte(string text) {
         int header_r = rand();
 
         if (header_r < header_p) {
-            text.s[i] = corruptByte(text.s[i]);
+            char c = corruptByte(text.s[i]);
+
+            if (TRACE_ERRORS) {
+                printf("[ERR] Corrupted %02x to %02x [header i=%d]",
+                    text.s[i], c, i);
+            }
+
+            text.s[i] = c;
         }
     }
 
@@ -262,7 +269,14 @@ static int introduceErrorsByte(string text) {
         int frame_r = rand();
 
         if (frame_r < frame_p) {
-            text.s[i] = corruptByte(text.s[i]);
+            char c = corruptByte(text.s[i]);
+
+            if (TRACE_ERRORS) {
+                printf("[ERR] Corrupted %02x to %02x [frame i=%d]",
+                    text.s[i], c, i);
+            }
+
+            text.s[i] = c;
         }
     }
 
@@ -277,7 +291,14 @@ static int introduceErrorsFrame(string text) {
     int header_b = 1 + (rand() % 3);
 
     if (header_r < header_p) {
-        text.s[header_b] = corruptByte(text.s[header_b]);
+        char c = corruptByte(text.s[header_b]);
+
+        if (TRACE_ERRORS) {
+            printf("[ERR] Corrupted %02x to %02x [frame i=%d]",
+                text.s[header_b], c, header_b);
+        }
+
+        text.s[header_b] = c;
     }
 
     if (text.len > 5) {
@@ -285,7 +306,14 @@ static int introduceErrorsFrame(string text) {
         int frame_b = 4 + (rand() % (text.len - 5));
 
         if (frame_r < frame_p) {
-            text.s[frame_b] = corruptByte(text.s[frame_b]);
+            char c = corruptByte(text.s[frame_b]);
+
+            if (TRACE_ERRORS) {
+                printf("[ERR] Corrupted %02x to %02x [frame i=%d]",
+                    text.s[frame_b], c, frame_b);
+            }
+
+            text.s[frame_b] = c;
         }
     }
 
