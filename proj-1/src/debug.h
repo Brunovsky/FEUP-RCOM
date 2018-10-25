@@ -6,20 +6,32 @@
 
 #include <assert.h>
 
-// Trace LL behaviour
+// Trace LL interface behaviour
 #define TRACE_LL 1
 
+// Trace LL read errors
+#define TRACE_LL_READ 0
+
+// Trace LL write errors
+#define TRACE_LL_WRITE 0
+
+// Trace chars read in LL
+#define DEEP_DEBUG 0
+
+// Trace LL frame corruption errors
+#define TRACE_LL_ERRORS 1
+
 // Trace IntroduceError behaviour
-#define TRACE_ERRORS 1
+#define TRACE_CORRUPTION 1
 
 // Trace APP behaviour
 #define TRACE_APP 1
 
+// Trace APP internals
+#define TRACE_APP_INTERNALS 0
+
 // Trace FILE behaviour
 #define TRACE_FILE 1
-
-// Trace chars read in LL
-#define DEEP_DEBUG 0
 
 // Print strings to stdout
 #define TEXT_DEBUG 0

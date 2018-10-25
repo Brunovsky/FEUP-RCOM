@@ -27,7 +27,7 @@ int send_filename = PACKET_FILENAME_DEFAULT; // filename, no-filename
 int my_role = DEFAULT_ROLE; // t, transmitter, r, receiver
 double h_error_prob = H_ERROR_PROB_DEFAULT; //header_p
 double f_error_prob = F_ERROR_PROB_DEFAULT; //header_f
-int error_type = ETYPE_DEfAULT; // error-byte, error-frame
+int error_type = ETYPE_DEFAULT; // error-byte, error-frame
 
 // Positional
 char** files = NULL;
@@ -126,6 +126,7 @@ static const wchar_t* usage = L"usage:\n"
     "      --error-byte,                                                  \n"
     "      --error-frame            Introduce the errors per byte         \n"
     "                               or per frame.                         \n"
+    "                                Default is per frame.                \n"
     "\n";
 
 /**
@@ -150,8 +151,8 @@ static void dump_options() {
         " my_role: %d (T=%d, R=%d)\n"
         " number_of_files: %d\n"
         " files: 0x%08x\n"
-        " h_error_prob: %lf\n"
-        " f_error_prob: %lf\n";
+        " header-p: %lf\n"
+        " frame-p: %lf\n";
 
     printf(dump_string, show_help, show_usage, show_version, time_retries,
         answer_retries, timeout, device, packetsize, send_filesize,
@@ -202,7 +203,7 @@ static void exit_badarg(const char* option) {
     if (DUMP_OPTIONS || dump) dump_options();
 
     setlocale(LC_ALL, "");
-    wprintf(L"[ARGS] Error: Bad argument for option %s.\n%S", option, usage);
+    printf("[ARGS] Error: Bad argument for option %s.\n%ls", option, usage);
     exit(EXIT_SUCCESS);
 }
 

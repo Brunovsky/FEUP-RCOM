@@ -1,4 +1,5 @@
 #include "ll-core.h"
+#include "ll-errors.h"
 #include "options.h"
 #include "signals.h"
 #include "debug.h"
@@ -117,9 +118,9 @@ static int destuffData(string in, string* outp, char* bcc2p) {
                 destuffed_data.s[j] = FRAME_ESC;
                 break;
             default:
-                if (TRACE_LL) {
-                    printf("[LL] Bad Escape [c=%c  0x%02x]\n",
-                        in.s[i], (unsigned char)in.s[i]);
+                if (TRACE_LL_ERRORS) {
+                    printf("[LLERR] Bad Escape [c=%c,0x%02x,i=%lu]\n",
+                        in.s[i], (unsigned char)in.s[i], i);
                 }
                 free(destuffed_data.s);
                 return FRAME_READ_BAD_ESCAPE;
@@ -137,8 +138,8 @@ static int destuffData(string in, string* outp, char* bcc2p) {
     parity ^= bcc2;
 
     if (bcc2 != parity) {
-        if (TRACE_LL) {
-            printf("[LL] Invalid Frame: BAD BCC2 [calc=0x%02x,read=0x%02x] [len=%lu]\n",
+        if (TRACE_LL_ERRORS) {
+            printf("[LLERR] Bad BCC2 [calc=0x%02x,read=0x%02x] [len=%lu]\n",
                 (unsigned char)parity, (unsigned char)bcc2, destuffed_data.len);
         }
         free(destuffed_data.s);
@@ -234,92 +235,6 @@ typedef enum {
     READ_PRE_FRAME, READ_START_FLAG, READ_WITHIN_FRAME, READ_END_FLAG
 } FrameReadState;
 
-static char corruptByte(char byte) {
-    return byte ^ (1 << (rand() % 8));
-}
-
-static int introduceErrors(string text) {
-    if (error_type == ETYPE_BYTE) {
-        return introduceErrorsByte(text);
-    } else if (error_type == ETYPE_FRAME) {
-        return introduceErrorsFrame(text);
-    }
-}
-
-static int introduceErrorsByte(string text) {
-    int header_p = RAND_MAX * h_error_prob;
-    int frame_p = RAND_MAX * f_error_prob;
-
-    for (size_t i = 1; i < 4; ++i) {
-        int header_r = rand();
-
-        if (header_r < header_p) {
-            char c = corruptByte(text.s[i]);
-
-            if (TRACE_ERRORS) {
-                printf("[ERR] Corrupted %02x to %02x [header i=%d]",
-                    text.s[i], c, i);
-            }
-
-            text.s[i] = c;
-        }
-    }
-
-    for (size_t i = 4; i < text.len - 1; ++i) {
-        int frame_r = rand();
-
-        if (frame_r < frame_p) {
-            char c = corruptByte(text.s[i]);
-
-            if (TRACE_ERRORS) {
-                printf("[ERR] Corrupted %02x to %02x [frame i=%d]",
-                    text.s[i], c, i);
-            }
-
-            text.s[i] = c;
-        }
-    }
-
-    return 0;
-}
-
-static int introduceErrorsFrame(string text) {
-    int header_p = RAND_MAX * h_error_prob;
-    int frame_p = RAND_MAX * f_error_prob;
-
-    int header_r = rand();
-    int header_b = 1 + (rand() % 3);
-
-    if (header_r < header_p) {
-        char c = corruptByte(text.s[header_b]);
-
-        if (TRACE_ERRORS) {
-            printf("[ERR] Corrupted %02x to %02x [frame i=%d]",
-                text.s[header_b], c, header_b);
-        }
-
-        text.s[header_b] = c;
-    }
-
-    if (text.len > 5) {
-        int frame_r = rand();
-        int frame_b = 4 + (rand() % (text.len - 5));
-
-        if (frame_r < frame_p) {
-            char c = corruptByte(text.s[frame_b]);
-
-            if (TRACE_ERRORS) {
-                printf("[ERR] Corrupted %02x to %02x [frame i=%d]",
-                    text.s[frame_b], c, frame_b);
-            }
-
-            text.s[frame_b] = c;
-        }
-    }
-
-    return 0;
-}
-
 /**
  * Primary Link Layer reading function.
  *
@@ -361,8 +276,8 @@ static int readText(int fd, string* textp) {
 
         if (s == 0) {
             if (++timed == timeout) {
-                if (TRACE_LL) {
-                    printf("[LL] Reading Timeout [len=%lu]\n", text.len);
+                if (TRACE_LL_READ) {
+                    printf("[LLREAD] Timeout [len=%lu]\n", text.len);
                 }
                 free(text.s);
                 return FRAME_READ_TIMEOUT;
@@ -373,23 +288,23 @@ static int readText(int fd, string* textp) {
 
         if (s == -1) {
             if (errno == EINTR) {
-                if (TRACE_LL) {
-                    printf("[LL] Read Error: EINTR [len=%lu]\n", text.len);
+                if (TRACE_LL_READ) {
+                    printf("[LLREAD] Error EINTR [len=%lu]\n", text.len);
                 }
                 continue;
             } else if (errno == EIO) {
-                if (TRACE_LL) {
-                    printf("[LL] Read Error: EIO [len=%lu]\n", text.len);
+                if (TRACE_LL_READ) {
+                    printf("[LLREAD] Error EIO [len=%lu]\n", text.len);
                 }
                 continue;
             } else if (errno == EAGAIN) {
-                if (TRACE_LL) {
-                    printf("[LL] Read Error: EAGAIN [len=%lu]\n", text.len);
+                if (TRACE_LL_READ) {
+                    printf("[LLREAD] Error EAGAIN [len=%lu]\n", text.len);
                 }
                 continue;
             } else {
-                if (TRACE_LL) {
-                    printf("[LL] Read Error: %s [len=%lu]\n", strerror(errno), text.len);
+                if (TRACE_LL_READ) {
+                    printf("[LLREAD] Error %s [len=%lu]\n", strerror(errno), text.len);
                 }
                 free(text.s);
                 return FRAME_READ_INVALID;
@@ -414,8 +329,8 @@ static int readText(int fd, string* textp) {
                     state = READ_WITHIN_FRAME;
                     text.s[text.len++] = c;
                 } else {
-                    if (TRACE_LL) {
-                        printf("[LL] Read: Bad A 0x%02x, back to pre-frame\n", c);
+                    if (TRACE_LL_READ) {
+                        printf("[LLREAD] Bad A 0x%02x, back to pre-frame\n", c);
                     }
                     state = READ_PRE_FRAME;
                     text.len = 0;
@@ -463,8 +378,8 @@ int writeFrame(int fd, frame f) {
     unset_alarm();
 
     if (b || err == EINTR) {
-        if (TRACE_LL) {
-            printf("[LL] Write Frame: Timeout [alarm=%d s=%d errno=%d] [%s]\n",
+        if (TRACE_LL_WRITE) {
+            printf("[LLWRITE] Timeout [alarm=%d s=%d errno=%d] [%s]\n",
                 (int)b, (int)s, err, strerror(err));
         }
         free(text.s);
@@ -492,7 +407,9 @@ int readFrame(int fd, frame* fp) {
     if (s != 0) return s;
 
     if (text.len < 5 || text.len == 6) {
-        if (TRACE_LL) printf("[LL] Read Frame: BAD LENGTH\n");
+        if (TRACE_LL_ERRORS) {
+            printf("[LLERR] Bad Length [len=%lu]\n", text.len);
+        }
         free(text.s);
         return FRAME_READ_INVALID;
     }
@@ -506,7 +423,10 @@ int readFrame(int fd, frame* fp) {
     char bcc1 = text.s[3];
 
     if (bcc1 != (f.a ^ f.c)) {
-        if (TRACE_LL) printf("[LL] Read Frame: BAD BCC1\n");
+        if (TRACE_LL_ERRORS) {
+            printf("[LLERR] Bad BCC1 [a=0x%02x,c=0x%02x,bcc1=0x%02x]\n",
+                f.a, f.c, bcc1);
+        }
         free(text.s);
         return FRAME_READ_INVALID;
     }
