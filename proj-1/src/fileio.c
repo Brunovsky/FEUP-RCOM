@@ -3,6 +3,7 @@
 #include "ll-interface.h"
 #include "options.h"
 #include "debug.h"
+#include "signals.h"
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -52,7 +53,7 @@ int send_file(int fd, char* filename) {
     rewind(file);
 
     if (lfs <= 0) {
-        printf("[FILE] Error: Invalid filesize %ld (pob. 0) %s\n",
+        printf("[FILE] Error: Invalid filesize %ld (probably 0) %s\n",
             filesize, filename);
         fclose(file);
         return 1;
@@ -100,11 +101,13 @@ int send_file(int fd, char* filename) {
     free(buffer);
 
     // Start communications.
+    begin_timing(0);
     s = llopen(fd);
     if (s != LL_OK) goto error;
 
     if (TRACE_FILE) printf("[FILE] BEGIN Packets %s\n", filename);
 
+    begin_timing(1);
     s = send_start_packet(fd, filesize, filename);
     if (s != LL_OK) goto error;
 
@@ -117,10 +120,12 @@ int send_file(int fd, char* filename) {
     // End communications.
     s = send_end_packet(fd, filesize, filename);
     if (s != LL_OK) goto error;
+    end_timing(1);
 
     if (TRACE_FILE) printf("[FILE] END Packets %s\n", filename);
 
     s = llclose(fd);
+    end_timing(0);
 
     free_packets(packets, number_packets);
     return s ? 1 : 0;
@@ -143,10 +148,12 @@ int receive_file(int fd) {
     data_packet dp;
 
     // Start communications.
+    begin_timing(0);
     s = llopen(fd);
     if (s != LL_OK) return 1;
 
     if (TRACE_FILE) printf("[FILE] BEGIN Packets\n");
+    begin_timing(1);
 
     type = receive_packet(fd, &dp, &cp);
 
@@ -234,12 +241,14 @@ int receive_file(int fd) {
 
     if (!reached_end) goto error;
 
+    end_timing(1);
     if (TRACE_FILE) printf("[FILE] END Packets %s\n", filename);
 
     s = llclose(fd);
     if (s != LL_OK) {
         printf("[FILE] llclose failed. Writing to file %s anyway\n", filename);
     }
+    end_timing(0);
 
     FILE* file = fopen(filename, "w");
     if (file == NULL) {

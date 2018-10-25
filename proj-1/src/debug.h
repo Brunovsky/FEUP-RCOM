@@ -7,7 +7,7 @@
 #include <assert.h>
 
 // Trace LL interface behaviour
-#define TRACE_LL 1
+#define TRACE_LL 0
 
 // Trace LL read errors
 #define TRACE_LL_READ 0
@@ -19,13 +19,13 @@
 #define DEEP_DEBUG 0
 
 // Trace LL frame corruption errors
-#define TRACE_LL_ERRORS 1
+#define TRACE_LL_ERRORS 0
 
 // Trace IntroduceError behaviour
-#define TRACE_CORRUPTION 1
+#define TRACE_CORRUPTION 0
 
 // Trace APP behaviour
-#define TRACE_APP 1
+#define TRACE_APP 0
 
 // Trace APP internals
 #define TRACE_APP_INTERNALS 0
@@ -41,6 +41,9 @@
 
 // Trace Signals
 #define TRACE_SIG 1
+
+// Trace Timing
+#define TRACE_TIME 0
 
 // Dump Options
 #define DUMP_OPTIONS 0

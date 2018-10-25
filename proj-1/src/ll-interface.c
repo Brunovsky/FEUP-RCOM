@@ -7,110 +7,145 @@
 #include <stdio.h>
 
 static int llopen_transmitter(int fd) {
-    int time_count = 0;
+    int time_count = 0, answer_count = 0;
 
-    while (time_count < time_retries) {
-        writeSETframe(fd);
+    while (time_count < time_retries && answer_count < answer_retries) {
+        int s = writeSETframe(fd);
+        if (s != FRAME_WRITE_OK) {
+            ++time_count;
+            continue;
+        }
 
         frame f;
-        int s = readFrame(fd, &f);
+        s = readFrame(fd, &f);
 
         if (s == FRAME_READ_TIMEOUT) {
             ++time_count;
-            continue;
         } else if (s == 0 && isUAframe(f)) {
-            if (TRACE_LL || TRACE_FILE) printf("[LL] llopen OK\n");
+            if (TRACE_LL || TRACE_FILE) printf("[LL] llopen (T) OK\n");
             return LL_OK;
         } else {
-            printf("[LL] llopen FAILED: invalid (not UA) response [s=0x%02x]\n", s);
-            return LL_WRONG_RESPONSE;
+            if (LL_ASSUME_UA_OK) {
+                if (TRACE_LL || TRACE_FILE) printf("[LL] llopen (T) ASSUME UA OK\n");
+                return LL_OK;
+            } else {
+                ++answer_count;
+            }
         }
     }
 
-    printf("[LL] llopen FAILED: %d time retries ran out\n", time_retries);
-    return LL_NO_TIME_RETRIES;
+    if (time_count == time_retries) {
+        printf("[LL] llopen (T) FAILED: %d time retries ran out\n", time_retries);
+        return LL_NO_TIME_RETRIES;
+    } else {
+        printf("[LL] llopen (T) FAILED: %d answer retries ran out\n", answer_retries);
+        return LL_NO_ANSWER_RETRIES;
+    }
 }
 
 static int llopen_receiver(int fd) {
-    int time_count = 0;
+    int time_count = 0, answer_count = 0;
 
-    while (time_count < time_retries) {
+    while (time_count < time_retries && answer_count < answer_retries) {
         frame f;
         int s = readFrame(fd, &f);
 
         if (s == FRAME_READ_TIMEOUT) {
             ++time_count;
-            continue;
         } else if (s == 0 && isSETframe(f)) {
             writeUAframe(fd);
-            if (TRACE_LL || TRACE_FILE) printf("[LL] llopen OK\n");
+            if (TRACE_LL || TRACE_FILE) printf("[LL] llopen (R) OK\n");
             return LL_OK;
         } else {
-            printf("[LL] llopen FAILED: invalid (not SET) command [s=0x%02x]\n", s);
-            return LL_WRONG_COMMAND;
+            ++answer_count;
         }
     }
 
-    printf("[LL] llopen FAILED: %d time retries ran out\n", time_retries);
-    return LL_NO_TIME_RETRIES;
+    if (time_count == time_retries) {
+        printf("[LL] llopen (R) FAILED: %d time retries ran out\n", time_retries);
+        return LL_NO_TIME_RETRIES;
+    } else {
+        printf("[LL] llopen (R) FAILED: %d answer retries ran out\n", answer_retries);
+        return LL_NO_ANSWER_RETRIES;
+    }
 }
 
 static int llclose_transmitter(int fd) {
-    int time_count = 0;
+    int time_count = 0, answer_count = 0;
 
-    while (time_count < time_retries) {
-        writeDISCframe(fd);
+    while (time_count < time_retries && answer_count < answer_retries) {
+        int s = writeDISCframe(fd);
+        if (s != FRAME_WRITE_OK) {
+            ++time_count;
+            continue;
+        }
 
         frame f;
-        int s = readFrame(fd, &f);
+        s = readFrame(fd, &f);
 
         if (s == FRAME_READ_TIMEOUT) {
             ++time_count;
-            continue;
         } else if (s == 0 && isDISCframe(f)) {
             writeUAframe(fd);
-            if (TRACE_LL || TRACE_FILE) printf("[LL] llclose OK\n");
+            if (TRACE_LL || TRACE_FILE) printf("[LL] llclose (T) OK\n");
             return LL_OK;
         } else {
-            printf("[LL] llclose FAILED: invalid (not DISC) response [s=0x%02x]\n", s);
-            return LL_WRONG_RESPONSE;
+            ++answer_count;
         }
     }
 
-    printf("[LL] llclose FAILED: %d time retries ran out\n", time_retries);
-    return LL_NO_TIME_RETRIES;
+    if (time_count == time_retries) {
+        printf("[LL] llclose (T) FAILED: %d time retries ran out\n", time_retries);
+        return LL_NO_TIME_RETRIES;
+    } else {
+        printf("[LL] llclose (T) FAILED: %d answer retries ran out\n", answer_retries);
+        return LL_NO_ANSWER_RETRIES;
+    }
 }
 
 static int llclose_receiver(int fd) {
-    int time_count = 0;
+    int time_count = 0, answer_count = 0;
 
-    while (time_count < time_retries) {
+    while (time_count < time_retries && answer_count < answer_retries) {
         frame f;
         int s = readFrame(fd, &f);
 
         if (s == FRAME_READ_TIMEOUT) {
             ++time_count;
-            continue;
         } else if (s == 0 && isDISCframe(f)) {
-            writeDISCframe(fd);
+            s = writeDISCframe(fd);
+            if (s != FRAME_WRITE_OK) {
+                ++time_count;
+                continue;
+            }
 
             s = readFrame(fd, &f);
 
-            if (s == 0 && isUAframe(f)) {
-                if (TRACE_LL || TRACE_FILE) printf("[LL] llclose OK\n");
+            if (s == FRAME_READ_TIMEOUT) {
+                ++time_count;
+            } if (s == 0 && isUAframe(f)) {
+                if (TRACE_LL || TRACE_FILE) printf("[LL] llclose (R) OK\n");
                 return LL_OK;
             } else {
-                printf("[LL] llclose FAILED: invalid (not UA) response [s=0x%02x]\n", s);
-                return LL_WRONG_RESPONSE;
+                if (LL_ASSUME_UA_OK) {
+                    if (TRACE_LL || TRACE_FILE) printf("[LL] llopen (T) ASSUME UA OK\n");
+                    return LL_OK;
+                } else {
+                    ++answer_count;
+                }
             }
         } else {
-            printf("[LL] llclose FAILED: invalid (not DISC) command [s=0x%02x]\n", s);
-            return LL_WRONG_COMMAND;
+            ++answer_count;
         }
     }
 
-    printf("[LL] llclose FAILED: %d time retries ran out\n", time_retries);
-    return LL_NO_TIME_RETRIES;
+    if (time_count == time_retries) {
+        printf("[LL] llclose (R) FAILED: %d time retries ran out\n", time_retries);
+        return LL_NO_TIME_RETRIES;
+    } else {
+        printf("[LL] llclose (R) FAILED: %d answer retries ran out\n", answer_retries);
+        return LL_NO_ANSWER_RETRIES;
+    }
 }
 
 int llopen(int fd) {

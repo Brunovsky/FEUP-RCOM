@@ -104,7 +104,7 @@ extern double f_error_prob;
 #define ETYPE_FRAME_LFLAG "error-frame"
 #define ETYPE_BYTE 0x71
 #define ETYPE_FRAME 0x72
-#define ETYPE_DEFAULT ETYPE_BYTE
+#define ETYPE_DEFAULT ETYPE_FRAME
 extern int error_type;
 // ----> END OF OPTIONS
 

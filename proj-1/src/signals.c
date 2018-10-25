@@ -8,6 +8,8 @@
 #include <stdio.h>
 #include <signal.h>
 #include <errno.h>
+#include <stdbool.h>
+#include <time.h>
 #include <sys/time.h>
 
 #define ALARM_TEST_SET           2500
@@ -19,6 +21,8 @@ static const char str_abort[] = "[SIG] -- Aborting...\n";
 static const char str_alarm[] = "[SIG] -- Alarmed...\n";
 
 static volatile sig_atomic_t alarmed = 0;
+
+static struct timespec timestamp[3];
 
 // SIGHUP, SIGQUIT, SIGTERM, SIGINT
 static void sighandler_kill(int signum) {
@@ -116,17 +120,11 @@ static void set_alarm_general(unsigned long us) {
 }
 
 void set_alarm() {
-    set_alarm_general((unsigned long)timeout * 1e5);
+    set_alarm_general((unsigned long)timeout * 100000);
 }
 
 void unset_alarm() {
-    static const struct itimerval new_value = {
-        .it_interval = {0, 0},
-        .it_value = {0, 0}
-    };
-
-    setitimer(ITIMER_REAL, &new_value, NULL);
-    alarmed = 0;
+    set_alarm_general(0lu);
 }
 
 bool was_alarmed() {
@@ -137,6 +135,7 @@ bool was_alarmed() {
 
 void test_alarm() {
     int s;
+    errno = 0;
 
     // Short sleep test
     set_alarm_general(ALARM_TEST_SET);
@@ -158,5 +157,34 @@ void test_alarm() {
     unset_alarm();
     errno = 0;
 
-    if (TRACE_SETUP) printf("[ALARM] Passed test_alarm()\n");
+    if (TRACE_SETUP) printf("[SETUP] Passed test_alarm()\n");
+}
+
+int begin_timing(size_t i) {    
+    if (TRACE_TIME) {
+        printf("[TIME] START Timing [%lu]\n", i);
+    }
+
+    clock_gettime(CLOCK_MONOTONIC, &timestamp[i]);
+
+    return 0;
+}
+
+int end_timing(size_t i) {
+    struct timespec end;
+    clock_gettime(CLOCK_MONOTONIC, &end);
+
+    if (TRACE_TIME) {
+        printf("[TIME] END timing [%lu]\n", i);
+    }
+
+    double s = (end.tv_sec - timestamp[i].tv_sec) * 1e3;
+    double ns = (end.tv_nsec - timestamp[i].tv_nsec) / 1e6;
+    double ms = s + ns;
+
+    timestamp[i].tv_sec = 0; timestamp[i].tv_nsec = 0;
+
+    printf("[STATS] Time [%lu] [ms=%.1lf]\n", i, ms);
+
+    return 0;
 }
