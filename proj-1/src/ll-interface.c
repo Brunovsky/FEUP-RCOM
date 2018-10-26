@@ -6,6 +6,14 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+/**
+ * llopen for T
+ * 
+ * @param  fd Link layer's file descriptor
+ * @return LL_OK if llopen succeeded,
+ *         LL_NO_TIME_RETRIES if timeouts maxed out,
+ *         LL_NO_ANSWER_RETRIES if answer errors maxed out.
+ */
 static int llopen_transmitter(int fd) {
     int time_count = 0, answer_count = 0;
 
@@ -19,18 +27,27 @@ static int llopen_transmitter(int fd) {
         frame f;
         s = readFrame(fd, &f);
 
-        if (s == FRAME_READ_TIMEOUT) {
-            ++time_count;
-        } else if (s == 0 && isUAframe(f)) {
-            if (TRACE_LL || TRACE_FILE) printf("[LL] llopen (T) OK\n");
-            return LL_OK;
-        } else {
-            if (LL_ASSUME_UA_OK) {
-                if (TRACE_LL || TRACE_FILE) printf("[LL] llopen (T) ASSUME UA OK\n");
+        switch (s) {
+        case FRAME_READ_OK:
+            if (isUAframe(f)) {
+                if (TRACE_LL || TRACE_FILE) {
+                    printf("[LL] llopen (T) OK\n");
+                }
                 return LL_OK;
-            } else {
-                ++answer_count;
             }
+            // FALLTHROUGH
+        case FRAME_READ_INVALID:
+            if (LL_ASSUME_OK) {
+                if (TRACE_LL || TRACE_FILE) {
+                    printf("[LL] llopen (T) ASSUME UA OK\n");
+                }
+                return LL_OK;
+            }
+            ++answer_count;
+            break;
+        case FRAME_READ_TIMEOUT:
+            ++time_count;
+            break;
         }
     }
 
@@ -43,6 +60,14 @@ static int llopen_transmitter(int fd) {
     }
 }
 
+/**
+ * llopen for R
+ * 
+ * @param  fd Link layer's file descriptor
+ * @return LL_OK if llopen succeeded,
+ *         LL_NO_TIME_RETRIES if timeouts maxed out,
+ *         LL_NO_ANSWER_RETRIES if answer errors maxed out.
+ */
 static int llopen_receiver(int fd) {
     int time_count = 0, answer_count = 0;
 
@@ -50,14 +75,22 @@ static int llopen_receiver(int fd) {
         frame f;
         int s = readFrame(fd, &f);
 
-        if (s == FRAME_READ_TIMEOUT) {
-            ++time_count;
-        } else if (s == 0 && isSETframe(f)) {
-            writeUAframe(fd);
-            if (TRACE_LL || TRACE_FILE) printf("[LL] llopen (R) OK\n");
-            return LL_OK;
-        } else {
+        switch (s) {
+        case FRAME_READ_OK:
+            if (isSETframe(f)) {
+                writeUAframe(fd);
+                if (TRACE_LL || TRACE_FILE) {
+                    printf("[LL] llopen (R) OK\n");
+                }
+                return LL_OK;
+            }
+            // FALLTHROUGH
+        case FRAME_READ_INVALID:
             ++answer_count;
+            break;
+        case FRAME_READ_TIMEOUT:
+            ++time_count;
+            break;
         }
     }
 
@@ -70,6 +103,14 @@ static int llopen_receiver(int fd) {
     }
 }
 
+/**
+ * llclose for T
+ * 
+ * @param  fd Link layer's file descriptor
+ * @return LL_OK if llclose succeeded,
+ *         LL_NO_TIME_RETRIES if timeouts maxed out,
+ *         LL_NO_ANSWER_RETRIES if answer errors maxed out.
+ */
 static int llclose_transmitter(int fd) {
     int time_count = 0, answer_count = 0;
 
@@ -83,14 +124,22 @@ static int llclose_transmitter(int fd) {
         frame f;
         s = readFrame(fd, &f);
 
-        if (s == FRAME_READ_TIMEOUT) {
-            ++time_count;
-        } else if (s == 0 && isDISCframe(f)) {
-            writeUAframe(fd);
-            if (TRACE_LL || TRACE_FILE) printf("[LL] llclose (T) OK\n");
-            return LL_OK;
-        } else {
+        switch (s) {
+        case FRAME_READ_OK:
+            if (isDISCframe(f)) {
+                writeUAframe(fd);
+                if (TRACE_LL || TRACE_FILE) {
+                    printf("[LL] llclose (T) OK\n");
+                }
+                return LL_OK;
+            }
+            // FALLTHROUGH
+        case FRAME_READ_INVALID:
             ++answer_count;
+            break;
+        case FRAME_READ_TIMEOUT:
+            ++time_count;
+            break;
         }
     }
 
@@ -103,39 +152,115 @@ static int llclose_transmitter(int fd) {
     }
 }
 
+/**
+ * State machine for llclose_receiver function
+ */
+typedef enum {
+    WAIT_DISC, GOOD_DISC, SEND_DISC, WAIT_ANSWER, TEST_TRANSMITTER
+} LLCloseState;
+
+// So here we have an issue. The protocol goes:
+//    (1) Wait for a DISC.
+//        If this is difficult keep trying/waiting to read a DISC,
+//        and increment the counts accordingly.
+//    (2) Finally we read a good DISC.
+//    (3) Send DISC.
+//    (4) Wait for an answer.
+//    (5.1) Bad answer: ???
+//    (5.2) Good answer:
+//        If the answer is UA all is good and we leave.
+//        If the answer is DISC we got back to (2).
+// 
+// Consider a situation where the line has a lot of noise.
+// After we answer a good DISC with a DISC,
+// the answer we receive at (4) is all mangled up.
+// We can't assume UA in (5.1) similarly to how we did in llopen
+// because if the answer is DISC we'd let T hung up,
+// which isn't nice enough. So we test T. Set a testing flag to change
+// the usual behaviour (test_status) and do as follows:
+// 
+//    (5.1) Bad answer: Respond with DISC.
+//    (5.1.1) If the write times out, the answer was a UA and T is gone.
+//    (5.1.2) If the read times out, no answer, same thing.
+//    (5.1.3) If neither times out, there is an answer, so we assume
+//        we had gotten a DISC in (4) and goto (2).
+
+/**
+ * llclose for R
+ * 
+ * @param  fd Link layer's file descriptor
+ * @return LL_OK if llclose succeeded,
+ *         LL_NO_TIME_RETRIES if timeouts maxed out,
+ *         LL_NO_ANSWER_RETRIES if answer errors maxed out.
+ */
 static int llclose_receiver(int fd) {
     int time_count = 0, answer_count = 0;
 
+    int test_status = false;
+
     while (time_count < time_retries && answer_count < answer_retries) {
         frame f;
-        int s = readFrame(fd, &f);
+        int s = readFrame(fd, &f); // 1
 
-        if (s == FRAME_READ_TIMEOUT) {
-            ++time_count;
-        } else if (s == 0 && isDISCframe(f)) {
-            s = writeDISCframe(fd);
-            if (s != FRAME_WRITE_OK) {
-                ++time_count;
-                continue;
-            }
-
-            s = readFrame(fd, &f);
-
-            if (s == FRAME_READ_TIMEOUT) {
-                ++time_count;
-            } if (s == 0 && isUAframe(f)) {
-                if (TRACE_LL || TRACE_FILE) printf("[LL] llclose (R) OK\n");
-                return LL_OK;
-            } else {
-                if (LL_ASSUME_UA_OK) {
-                    if (TRACE_LL || TRACE_FILE) printf("[LL] llopen (T) ASSUME UA OK\n");
-                    return LL_OK;
-                } else {
-                    ++answer_count;
+        switch (s) {
+        case FRAME_READ_OK:
+            if (isDISCframe(f)) { // 2
+answer:
+                s = writeDISCframe(fd); // 3
+                if (s != FRAME_WRITE_OK) {
+                    if (test_status) {
+                        if (TRACE_LL || TRACE_FILE) {
+                            printf("[LL] llclose (R) WRITE TIMEOUT ASSUME OK\n");
+                        }
+                        return LL_OK;
+                    } else {
+                        ++time_count;
+                        continue;
+                    }
                 }
+
+                s = readFrame(fd, &f); // 4
+
+                switch (s) {
+                case FRAME_READ_OK: // 5.2
+                    if (isUAframe(f)) {
+                        if (TRACE_LL || TRACE_FILE) {
+                            printf("[LL] llclose (R) OK\n");
+                        }
+                        return LL_OK;
+                    }
+                    if (isDISCframe(f)) {
+                        goto answer;
+                    }
+                    // FALLTHROUGH
+                case FRAME_READ_INVALID: // 5.1
+                    if (LL_ASSUME_OK) {
+                        test_status = !test_status;
+                        goto answer;
+                    }
+                    ++answer_count;
+                    break;
+                case FRAME_READ_TIMEOUT:
+                    if (test_status) {
+                        if (TRACE_LL || TRACE_FILE) {
+                            printf("[LL] llclose (R) READ TIMEOUT ASSUME OK\n");
+                        }
+                        return LL_OK;
+                    }
+                    test_status = false;
+                    ++time_count;
+                    break;
+                }
+
+                break;
             }
-        } else {
+            // FALLTHROUGH
+        case FRAME_READ_INVALID:
             ++answer_count;
+            break;
+        case FRAME_READ_TIMEOUT:
+            ++time_count;
+            break;
         }
     }
 
@@ -148,6 +273,12 @@ static int llclose_receiver(int fd) {
     }
 }
 
+/**
+ * @param  fd Link layer's file descriptor
+ * @return LL_OK if llopen succeeded,
+ *         LL_NO_TIME_RETRIES if timeouts maxed out,
+ *         LL_NO_ANSWER_RETRIES if answer errors maxed out.
+ */
 int llopen(int fd) {
     if (my_role == TRANSMITTER) {
         return llopen_transmitter(fd);
@@ -156,6 +287,13 @@ int llopen(int fd) {
     }
 }
 
+/**
+ * @param fd      Link layer's file descriptor
+ * @param message String to be sent over LL
+ * @return LL_OK if llwrite succeeded,
+ *         LL_NO_TIME_RETRIES if timeouts maxed out,
+ *         LL_NO_ANSWER_RETRIES if answer errors maxed out.
+ */
 int llwrite(int fd, string message) {
     static int index = 0; // only supports one fd.
 
@@ -188,11 +326,11 @@ int llwrite(int fd, string message) {
                 ++answer_count;
             }
             break;
-        case FRAME_READ_TIMEOUT:
-            ++time_count;
-            break;
         case FRAME_READ_INVALID:
             ++answer_count;
+            break;
+        case FRAME_READ_TIMEOUT:
+            ++time_count;
             break;
         }
     }
@@ -206,6 +344,13 @@ int llwrite(int fd, string message) {
     }
 }
 
+/**
+ * @param fd       Link layer's file descriptor
+ * @param messagep Where to store the read message
+ * @return LL_OK if llread succeeded,
+ *         LL_NO_TIME_RETRIES if timeouts maxed out,
+ *         LL_NO_ANSWER_RETRIES if answer errors maxed out.
+ */
 int llread(int fd, string* messagep) {
     static int index = 0; // only supports one fd.
 
@@ -233,12 +378,12 @@ int llread(int fd, string* messagep) {
                 }
             }
             break;
-        case FRAME_READ_TIMEOUT:
-            ++time_count;
-            break;
         case FRAME_READ_INVALID:
             writeREJframe(fd, index);
             ++answer_count;
+            break;
+        case FRAME_READ_TIMEOUT:
+            ++time_count;
             break;
         }
     }
@@ -252,6 +397,12 @@ int llread(int fd, string* messagep) {
     }
 }
 
+/**
+ * @param  fd Link layer's file descriptor
+ * @return LL_OK if llclose succeeded,
+ *         LL_NO_TIME_RETRIES if timeouts maxed out,
+ *         LL_NO_ANSWER_RETRIES if answer errors maxed out.
+ */
 int llclose(int fd) {
     if (my_role == TRANSMITTER) {
         return llclose_transmitter(fd);

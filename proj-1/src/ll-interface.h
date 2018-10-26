@@ -9,7 +9,7 @@
 #define LL_NO_TIME_RETRIES   0x20
 #define LL_NO_ANSWER_RETRIES 0x21
 
-#define LL_ASSUME_UA_OK 1
+#define LL_ASSUME_OK 1
 
 int llopen(int fd);
 
