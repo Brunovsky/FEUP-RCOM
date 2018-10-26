@@ -25,8 +25,8 @@ size_t packetsize = PACKETSIZE_DEFAULT; // p, packetsize
 int send_filesize = PACKET_FILESIZE_DEFAULT; // filesize, no-filesize
 int send_filename = PACKET_FILENAME_DEFAULT; // filename, no-filename
 int my_role = DEFAULT_ROLE; // t, transmitter, r, receiver
-double h_error_prob = H_ERROR_PROB_DEFAULT; //header_p
-double f_error_prob = F_ERROR_PROB_DEFAULT; //header_f
+double h_error_prob = H_ERROR_PROB_DEFAULT; // header-p
+double f_error_prob = F_ERROR_PROB_DEFAULT; // frame-p
 int error_type = ETYPE_DEFAULT; // error-byte, error-frame
 
 // Positional
@@ -48,10 +48,10 @@ static const struct option long_options[] = {
     {TIMEOUT_LFLAG,           required_argument, NULL,        TIMEOUT_FLAG},
     {DEVICE_LFLAG,            required_argument, NULL,         DEVICE_FLAG},
     {PACKETSIZE_LFLAG,        required_argument, NULL,     PACKETSIZE_FLAG},
-    {PACKET_FILESIZE_LFLAG,         no_argument, &send_filesize,      true},
-    {PACKET_NOFILESIZE_LFLAG,       no_argument, &send_filesize,     false},
-    {PACKET_FILENAME_LFLAG,         no_argument, &send_filename,      true},
-    {PACKET_NOFILENAME_LFLAG,       no_argument, &send_filename,     false},
+    //{PACKET_FILESIZE_LFLAG,         no_argument, &send_filesize,      true},
+    //{PACKET_NOFILESIZE_LFLAG,       no_argument, &send_filesize,     false},
+    //{PACKET_FILENAME_LFLAG,         no_argument, &send_filename,      true},
+    //{PACKET_NOFILENAME_LFLAG,       no_argument, &send_filename,     false},
     {TRANSMITTER_LFLAG,             no_argument, NULL,    TRANSMITTER_FLAG},
     {RECEIVER_LFLAG,                no_argument, NULL,       RECEIVER_FLAG},
     {HEADER_ERROR_P_LFLAG,    required_argument, NULL, HEADER_ERROR_P_FLAG},
@@ -67,7 +67,7 @@ static const struct option long_options[] = {
 };
 
 // Enforce POSIX with leading +
-static const char* short_options = "Vhd:p:i:rt";
+static const char* short_options = "Va:d:s:i:rth:f:";
 // x for no_argument, x: for required_argument,
 // x:: for optional_argument (GNU extension),
 // x; to transform  -x foo  into  --foo
@@ -96,37 +96,37 @@ static const wchar_t* usage = L"usage:\n"
     "      --dump                   Dump options and exit                 \n"
     "                                                                     \n"
     "Options:                                                             \n"
-    "      --time-retries=N         Write stop&wait attempts for the      \n"
+    "      --time=N                 Write stop&wait attempts for the      \n"
     "                               link-layer when timeout occurs.       \n"
-    "                                Default is 3                         \n"
-    "      --answer-retries=N       Write stop&wait attempts for the      \n"
+    "                                 [Default is 5]                      \n"
+    "  -a, --answer=N               Write stop&wait attempts for the      \n"
     "                               link-layer when an answer is invalid. \n"
-    "                                Default is 5                         \n"
+    "                                 [Default is 100]                    \n"
     "      --timeout=N              Timeout for the link-layer, in ds.    \n"
     "                               Applies to writes' alarms and reads   \n"
-    "                                Default is 10                        \n"
+    "                                 [Default is 10]                     \n"
     "  -d, --device=S               Set the device to use.                \n"
-    "                                Default is /dev/ttyS0                \n"
-    "  -p, --packetsize=N           Set the packets' size, in bytes.      \n"
-    "                               Relevant only for Transmitter.        \n"
-    "                                Default is 1024 bytes                \n"
-    "      --filesize,                                                    \n"
-    "      --no-filesize            Send filesize in START packet.        \n"
-    "      --filename,                                                    \n"
-    "      --no-filename            Send filename in START packet.        \n"
-    "                                Default is yes for both.             \n"
-    "                                Not yet implemented.                 \n"
+    "                                 [Default is /dev/ttyS0]             \n"
+    "  -s, --packetsize=N           Set the packets' size, in bytes.      \n"
+    "                               * Relevant only for the Transmitter.  \n"
+    "                                 [Default is 1024 bytes]             \n"
     "  -t, --transmitter,                                                 \n"
     "  -r, --receiver               Set the program's role.               \n"
-    "                                Default is Receiver                  \n"
-    "      --header-p               Probability of inputing an error in   \n"
-    "                               a read frame's header                 \n"
-    "      --frame-p                Probability of inputing an error in   \n"
-    "                               a read frame's data                   \n"
+    "                                 [Default is Receiver]               \n"
+    "  -h, --header-p=P             Probability of inputing an error in   \n"
+    "                               a read frame's header.                \n"
+    "                                 [Default is 0]                      \n"
+    "  -f, --frame-p=P              Probability of inputing an error in   \n"
+    "                               a read frame's data.                  \n"
+    "                                 [Default is 0]                      \n"
+    "                               * Relevant only for the Receiver.     \n"
     "      --error-byte,                                                  \n"
-    "      --error-frame            Introduce the errors per byte         \n"
-    "                               or per frame.                         \n"
-    "                                Default is per frame.                \n"
+    "      --error-frame            Introduce the errors per-byte         \n"
+    "                               or per-frame.                         \n"
+    "                                Default is per-frame.                \n"
+    "                               Introducing errors per-byte may cause \n"
+    "                               corrupted messages to pass undetected,\n"
+    "                               corrupting the received file.         \n"
     "\n";
 
 /**
@@ -146,8 +146,6 @@ static void dump_options() {
         " timeout: %d\n"
         " device: %s\n"
         " packetsize: %lu\n"
-        " send_filesize: %d\n"
-        " send_filename: %d\n"
         " my_role: %d (T=%d, R=%d)\n"
         " number_of_files: %d\n"
         " files: 0x%08x\n"
@@ -155,8 +153,8 @@ static void dump_options() {
         " frame-p: %lf\n";
 
     printf(dump_string, show_help, show_usage, show_version, time_retries,
-        answer_retries, timeout, device, packetsize, send_filesize,
-        send_filename, my_role, TRANSMITTER, RECEIVER, number_of_files, files, h_error_prob, f_error_prob);
+        answer_retries, timeout, device, packetsize, my_role, TRANSMITTER,
+        RECEIVER, number_of_files, files, h_error_prob, f_error_prob);
 
     if (files != NULL) {
         for (size_t i = 0; i < number_of_files; ++i) {

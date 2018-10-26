@@ -37,7 +37,7 @@ static int llopen_transmitter(int fd) {
             }
             // FALLTHROUGH
         case FRAME_READ_INVALID:
-            if (LL_ASSUME_OK) {
+            if (LLOPEN_ASSUME_UA_OK) {
                 if (TRACE_LL || TRACE_FILE) {
                     printf("[LL] llopen (T) ASSUME UA OK\n");
                 }
@@ -152,13 +152,6 @@ static int llclose_transmitter(int fd) {
     }
 }
 
-/**
- * State machine for llclose_receiver function
- */
-typedef enum {
-    WAIT_DISC, GOOD_DISC, SEND_DISC, WAIT_ANSWER, TEST_TRANSMITTER
-} LLCloseState;
-
 // So here we have an issue. The protocol goes:
 //    (1) Wait for a DISC.
 //        If this is difficult keep trying/waiting to read a DISC,
@@ -196,7 +189,7 @@ typedef enum {
 static int llclose_receiver(int fd) {
     int time_count = 0, answer_count = 0;
 
-    int test_status = false;
+    bool answered_disc = false;
 
     while (time_count < time_retries && answer_count < answer_retries) {
         frame f;
@@ -208,7 +201,7 @@ static int llclose_receiver(int fd) {
 answer:
                 s = writeDISCframe(fd); // 3
                 if (s != FRAME_WRITE_OK) {
-                    if (test_status) {
+                    if (answered_disc) {
                         if (TRACE_LL || TRACE_FILE) {
                             printf("[LL] llclose (R) WRITE TIMEOUT ASSUME OK\n");
                         }
@@ -218,6 +211,8 @@ answer:
                         continue;
                     }
                 }
+
+                answered_disc = true;
 
                 s = readFrame(fd, &f); // 4
 
@@ -229,25 +224,17 @@ answer:
                         }
                         return LL_OK;
                     }
-                    if (isDISCframe(f)) {
-                        goto answer;
-                    }
                     // FALLTHROUGH
                 case FRAME_READ_INVALID: // 5.1
-                    if (LL_ASSUME_OK) {
-                        test_status = !test_status;
-                        goto answer;
-                    }
-                    ++answer_count;
-                    break;
+                    answered_disc = false;
+                    goto answer;
                 case FRAME_READ_TIMEOUT:
-                    if (test_status) {
+                    if (answered_disc) {
                         if (TRACE_LL || TRACE_FILE) {
                             printf("[LL] llclose (R) READ TIMEOUT ASSUME OK\n");
                         }
                         return LL_OK;
                     }
-                    test_status = false;
                     ++time_count;
                     break;
                 }
@@ -256,6 +243,7 @@ answer:
             }
             // FALLTHROUGH
         case FRAME_READ_INVALID:
+            answerBADframe(fd, f);
             ++answer_count;
             break;
         case FRAME_READ_TIMEOUT:
@@ -376,6 +364,7 @@ int llread(int fd, string* messagep) {
                     printf("[LL] llread: Expected frame %d, got frame %d\n",
                         index % 2, (index + 1) % 2);
                 }
+                free(f.data.s);
             }
             break;
         case FRAME_READ_INVALID:

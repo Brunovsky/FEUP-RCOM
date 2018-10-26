@@ -276,7 +276,7 @@ static int readText(int fd, string* textp) {
 
         if (s == 0) {
             if (++timed == timeout) {
-                if (TRACE_LL_READ) {
+                if (TRACE_LLERR_READ) {
                     printf("[LLREAD] Timeout [len=%lu]\n", text.len);
                 }
                 free(text.s);
@@ -288,22 +288,22 @@ static int readText(int fd, string* textp) {
 
         if (s == -1) {
             if (errno == EINTR) {
-                if (TRACE_LL_READ) {
+                if (TRACE_LLERR_READ) {
                     printf("[LLREAD] Error EINTR [len=%lu]\n", text.len);
                 }
                 continue;
             } else if (errno == EIO) {
-                if (TRACE_LL_READ) {
+                if (TRACE_LLERR_READ) {
                     printf("[LLREAD] Error EIO [len=%lu]\n", text.len);
                 }
                 continue;
             } else if (errno == EAGAIN) {
-                if (TRACE_LL_READ) {
+                if (TRACE_LLERR_READ) {
                     printf("[LLREAD] Error EAGAIN [len=%lu]\n", text.len);
                 }
                 continue;
             } else {
-                if (TRACE_LL_READ) {
+                if (TRACE_LLERR_READ) {
                     printf("[LLREAD] Error %s [len=%lu]\n", strerror(errno), text.len);
                 }
                 free(text.s);
@@ -311,7 +311,7 @@ static int readText(int fd, string* textp) {
             }
         }
 
-        if (text.len == reserved) {
+        if (text.len + 1 == reserved) {
             text.s = realloc(text.s, 2 * reserved * sizeof(char));
             reserved *= 2;
         }
@@ -329,7 +329,7 @@ static int readText(int fd, string* textp) {
                     state = READ_WITHIN_FRAME;
                     text.s[text.len++] = c;
                 } else {
-                    if (TRACE_LL_READ) {
+                    if (TRACE_LLERR_READ) {
                         printf("[LLREAD] Bad A 0x%02x, back to pre-frame\n", c);
                     }
                     state = READ_PRE_FRAME;
@@ -377,15 +377,15 @@ int writeFrame(int fd, frame f) {
     bool b = was_alarmed();
     unset_alarm();
 
+    free(text.s);
+
     if (b || err == EINTR) {
-        if (TRACE_LL_WRITE) {
+        if (TRACE_LLERR_WRITE) {
             printf("[LLWRITE] Timeout [alarm=%d s=%d errno=%d] [%s]\n",
                 (int)b, (int)s, err, strerror(err));
         }
-        free(text.s);
         return FRAME_WRITE_TIMEOUT;
     } else {
-        free(text.s);
         return FRAME_WRITE_OK;
     }
 }
@@ -401,6 +401,8 @@ int writeFrame(int fd, frame f) {
  */
 int readFrame(int fd, frame* fp) {
     string text;
+    frame dummy = {0, 0, {NULL, 0}};
+    *fp = dummy;
 
     int s = readText(fd, &text);
 

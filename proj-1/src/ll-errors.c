@@ -31,7 +31,7 @@ static int introduceErrorsByte(string text) {
 
             if (TRACE_CORRUPTION) {
                 printf("[CORR] [header i=%lu] Corrupted 0x%02x to 0x%02x\n",
-                    i, text.s[i], c);
+                    i, (unsigned char)text.s[i], (unsigned char)c);
             }
 
             text.s[i] = c;
@@ -46,7 +46,7 @@ static int introduceErrorsByte(string text) {
 
             if (TRACE_CORRUPTION) {
                 printf("[CORR] [frame i=%lu] Corrupted 0x%02x to 0x%02x\n",
-                    i, text.s[i], c);
+                    i, (unsigned char)text.s[i], (unsigned char)c);
             }
 
             text.s[i] = c;
@@ -68,7 +68,7 @@ static int introduceErrorsFrame(string text) {
 
         if (TRACE_CORRUPTION) {
             printf("[CORR] [frame i=%lu] Corrupted 0x%02x to 0x%02x\n",
-                header_b, text.s[header_b], c);
+                header_b, (unsigned char)text.s[header_b], (unsigned char)c);
         }
 
         text.s[header_b] = c;
@@ -83,7 +83,7 @@ static int introduceErrorsFrame(string text) {
 
             if (TRACE_CORRUPTION) {
                 printf("[CORR] [frame i=%lu] Corrupted 0x%02x to 0x%02x\n",
-                    frame_b, text.s[frame_b], c);
+                    frame_b, (unsigned char)text.s[frame_b], (unsigned char)c);
             }
 
             text.s[frame_b] = c;

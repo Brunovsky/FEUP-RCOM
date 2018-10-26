@@ -1,15 +1,16 @@
 #include "ll-frames.h"
 #include "debug.h"
 
-#include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
+#include <stdio.h>
 
 bool isIframe(frame f, int parity) {
     bool b = f.a == FRAME_A_COMMAND &&
              f.c == FRAME_C_I(parity) &&
              f.data.s != NULL && f.data.len > 0;
 
-    if (TRACE_LL) printf("[LL] isIframe(%d) ? %d\n", parity % 2, (int)b);
+    if (TRACE_LL_IS) printf("[LL] isIframe(%d) ? %d\n", parity % 2, (int)b);
     return b;
 }
 
@@ -18,7 +19,7 @@ bool isSETframe(frame f) {
              f.c == FRAME_C_SET &&
              f.data.s == NULL;
 
-    if (TRACE_LL) printf("[LL] isSETframe() ? %d\n", (int)b);
+    if (TRACE_LL_IS) printf("[LL] isSETframe() ? %d\n", (int)b);
     return b;
 }
 
@@ -27,7 +28,7 @@ bool isDISCframe(frame f) {
              f.c == FRAME_C_DISC &&
              f.data.s == NULL;
 
-    if (TRACE_LL) printf("[LL] isDISCframe() ? %d\n", (int)b);
+    if (TRACE_LL_IS) printf("[LL] isDISCframe() ? %d\n", (int)b);
     return b;
 }
 
@@ -36,7 +37,7 @@ bool isUAframe(frame f) {
              f.c == FRAME_C_UA &&
              f.data.s == NULL;
 
-    if (TRACE_LL) printf("[LL] isUAframe() ? %d\n", (int)b);
+    if (TRACE_LL_IS) printf("[LL] isUAframe() ? %d\n", (int)b);
     return b;
 }
 
@@ -45,7 +46,7 @@ bool isRRframe(frame f, int parity) {
              f.c == FRAME_C_RR(parity) &&
              f.data.s == NULL;
 
-    if (TRACE_LL) printf("[LL] isRRframe(%d) ? %d\n", parity % 2, (int)b);
+    if (TRACE_LL_IS) printf("[LL] isRRframe(%d) ? %d\n", parity % 2, (int)b);
     return b;
 }
 
@@ -54,9 +55,32 @@ bool isREJframe(frame f, int parity) {
              f.c == FRAME_C_REJ(parity) &&
              f.data.s == NULL;
 
-    if (TRACE_LL) printf("[LL] isREJframe(%d) ? %d\n", parity % 2, (int)b);
+    if (TRACE_LL_IS) printf("[LL] isREJframe(%d) ? %d\n", parity % 2, (int)b);
     return b;
 }
+
+
+
+int answerBADframe(int fd, frame f) {
+    static int rrpar = 0;
+    int s = 0;
+
+    if (isIframe(f, 0) || isIframe(f, 1)) {
+        if (isIframe(f, 0)) {
+            s = writeRRframe(fd, 1);
+        } else {
+            s = writeRRframe(fd, 0);
+        }
+
+        free(f.data.s);
+    } else {
+        s = writeRRframe(fd, rrpar++);
+    }
+
+    return s;
+}
+
+
 
 int writeIframe(int fd, string message, int parity) {
     frame f = {
@@ -65,7 +89,7 @@ int writeIframe(int fd, string message, int parity) {
         .data = message
     };
 
-    if (TRACE_LL) {
+    if (TRACE_LL_WRITE) {
         printf("[LL] writeIframe(%d) [flen=%lu]\n", parity % 2, f.data.len);
         if (TEXT_DEBUG) print_stringn(message);
     }
@@ -79,7 +103,7 @@ int writeSETframe(int fd) {
         .data = {NULL, 0}
     };
 
-    if (TRACE_LL) printf("[LL] writeSETframe()\n");
+    if (TRACE_LL_WRITE) printf("[LL] writeSETframe()\n");
     return writeFrame(fd, f);
 }
 
@@ -90,7 +114,7 @@ int writeDISCframe(int fd) {
         .data = {NULL, 0}
     };
 
-    if (TRACE_LL) printf("[LL] writeDISCframe()\n");
+    if (TRACE_LL_WRITE) printf("[LL] writeDISCframe()\n");
     return writeFrame(fd, f);
 }
 
@@ -101,7 +125,7 @@ int writeUAframe(int fd) {
         .data = {NULL, 0}
     };
 
-    if (TRACE_LL) printf("[LL] writeUAframe()\n");
+    if (TRACE_LL_WRITE) printf("[LL] writeUAframe()\n");
     return writeFrame(fd, f);
 }
 
@@ -112,7 +136,7 @@ int writeRRframe(int fd, int parity) {
         .data = {NULL, 0}
     };
 
-    if (TRACE_LL) printf("[LL] writeRRframe(%d)\n", parity % 2);
+    if (TRACE_LL_WRITE) printf("[LL] writeRRframe(%d)\n", parity % 2);
     return writeFrame(fd, f);
 }
 
@@ -123,6 +147,6 @@ int writeREJframe(int fd, int parity) {
         .data = {NULL, 0}
     };
 
-    if (TRACE_LL) printf("[LL] writeREJframe(%d)\n", parity % 2);
+    if (TRACE_LL_WRITE) printf("[LL] writeREJframe(%d)\n", parity % 2);
     return writeFrame(fd, f);
 }

@@ -19,6 +19,9 @@ bool isRRframe(frame f, int parity);
 bool isREJframe(frame f, int parity);
 
 
+int answerBADframe(int fd, frame f);
+
+
 int writeIframe(int fd, string message, int index);
 
 int writeSETframe(int fd);

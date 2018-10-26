@@ -3,13 +3,14 @@
 
 #include "strings.h"
 
-#define LL_OK                0x00
-#define LL_WRONG_COMMAND     0x10
-#define LL_WRONG_RESPONSE    0x11
-#define LL_NO_TIME_RETRIES   0x20
-#define LL_NO_ANSWER_RETRIES 0x21
+#define LL_OK                  0x00
+#define LL_WRONG_COMMAND       0x10
+#define LL_WRONG_RESPONSE      0x11
+#define LL_NO_TIME_RETRIES     0x20
+#define LL_NO_ANSWER_RETRIES   0x21
 
-#define LL_ASSUME_OK 1
+#define LLOPEN_ASSUME_UA_OK    1
+#define LLCLOSE_ASSUME_DISC_OK 1
 
 int llopen(int fd);
 

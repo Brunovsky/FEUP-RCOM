@@ -194,8 +194,7 @@ int receive_file(int fd) {
 
         switch (type) {
         case PRECEIVE_START:
-            printf("[FILE] Error: Expected DATA/END packet, "
-                "received START packet. Continuing\n");
+            printf("[FILE] Error: Expected DATA/END packet, received START packet. Continuing\n");
             free_control_packet(cp);
             break;
         case PRECEIVE_DATA:

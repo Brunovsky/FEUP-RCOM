@@ -18,7 +18,7 @@
 
 // <!--- GENERAL OPTIONS
 // Show help/usage message and exit
-#define HELP_FLAG 'h'
+#define HELP_FLAG '0'
 #define HELP_LFLAG "help"
 
 // Show help/usage message and exit
@@ -39,14 +39,14 @@
 // <!--- OPTIONS
 // Set number of send retries for link-layer communications, when the
 // receiver does not acknowledge the frame.
-#define TIME_RETRIES_FLAG '0'
-#define TIME_RETRIES_LFLAG "time-retries"
-#define TIME_RETRIES_DEFAULT 3
+#define TIME_RETRIES_FLAG '1'
+#define TIME_RETRIES_LFLAG "time"
+#define TIME_RETRIES_DEFAULT 5
 extern int time_retries;
 
-#define ANSWER_RETRIES_FLAG '1'
-#define ANSWER_RETRIES_LFLAG "answer-retries"
-#define ANSWER_RETRIES_DEFAULT 5
+#define ANSWER_RETRIES_FLAG 'a'
+#define ANSWER_RETRIES_LFLAG "answer"
+#define ANSWER_RETRIES_DEFAULT 100
 extern int answer_retries;
 
 // Set timeout in deciseconds for link-layer communications.
@@ -62,7 +62,7 @@ extern int timeout;
 extern char* device;
 
 // Set packet size, in bytes
-#define PACKETSIZE_FLAG 'p'
+#define PACKETSIZE_FLAG 's'
 #define PACKETSIZE_LFLAG "packetsize"
 #define PACKETSIZE_DEFAULT 1024
 extern size_t packetsize;
@@ -72,14 +72,14 @@ extern size_t packetsize;
 #define PACKET_FILESIZE_LFLAG "filesize"
 #define PACKET_NOFILESIZE_LFLAG "no-filesize"
 #define PACKET_FILESIZE_DEFAULT true
-extern int send_filesize;
+extern int send_filesize; // NOT IMPLEMENTED
 
 // Send or do not send filename in START packet
 #define PACKET_FILENAME_FLAG // none
 #define PACKET_FILENAME_LFLAG "filename"
 #define PACKET_NOFILENAME_LFLAG "no-filename"
 #define PACKET_FILENAME_DEFAULT true
-extern int send_filename;
+extern int send_filename; // NOT IMPLEMENTED
 
 #define TRANSMITTER_FLAG 't'
 #define TRANSMITTER_LFLAG "transmitter"
@@ -90,8 +90,8 @@ extern int send_filename;
 #define DEFAULT_ROLE RECEIVER
 extern int my_role;
 
-#define HEADER_ERROR_P_FLAG '3'
-#define FRAME_ERROR_P_FLAG '4'
+#define HEADER_ERROR_P_FLAG 'h'
+#define FRAME_ERROR_P_FLAG 'f'
 #define HEADER_ERROR_P_LFLAG "header-p"
 #define FRAME_ERROR_P_LFLAG "frame-p"
 #define H_ERROR_PROB_DEFAULT 0.0
