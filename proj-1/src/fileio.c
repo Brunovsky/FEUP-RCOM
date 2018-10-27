@@ -3,7 +3,7 @@
 #include "ll-interface.h"
 #include "options.h"
 #include "debug.h"
-#include "signals.h"
+#include "timing.h"
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -127,6 +127,8 @@ int send_file(int fd, char* filename) {
     s = llclose(fd);
     end_timing(0);
 
+    print_stats(1, filesize);
+
     free_packets(packets, number_packets);
     return s ? 1 : 0;
 
@@ -248,6 +250,8 @@ int receive_file(int fd) {
         printf("[FILE] llclose failed. Writing to file %s anyway\n", filename);
     }
     end_timing(0);
+
+    print_stats(1, filesize);
 
     FILE* file = fopen(filename, "w");
     if (file == NULL) {

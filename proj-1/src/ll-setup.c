@@ -1,4 +1,5 @@
 #include "ll-setup.h"
+#include "options.h"
 #include "debug.h"
 
 #include <stdlib.h>
@@ -11,9 +12,37 @@
 #include <termios.h>
 #include <errno.h>
 
-#define BAUDRATE B38400
+#define BAUDRATE B9600
 
 static struct termios oldtios;
+
+static int baudrates_list[] = {50, 75, 110, 134, 150, 200, 300, 600, 1200,
+    1800, 2400, 4800, 9600, 19200, 38400, 57600, 115200, 230400, 460800,
+    500000, 576000};
+
+static int baudrates_macros[] = {B50, B75, B110, B134, B150, B200, B300, B600,
+    B1200, B1800, B2400, B4800, B9600, B19200, B38400, B57600, B115200,
+    B230400, B460800, B500000, B576000};
+
+static size_t baudrates_length = sizeof(baudrates_list) / sizeof(int);
+
+static int select_baudrate() {
+    for (size_t i = 0; i < baudrates_length; ++i) {
+        if (baudrate == baudrates_list[i]) {
+            return baudrates_macros[i];
+        }
+    }
+    printf("[SETUP] Bad select_baudrate\n");
+    exit(EXIT_FAILURE);
+}
+
+bool is_valid_baudrate(int baudrate) {
+    for (size_t i = 0; i < baudrates_length; ++i) {
+        if (baudrate == baudrates_list[i]) return true;
+    }
+    printf("[SETUP] Baudrate %d is invalid.\n", baudrate);
+    return false;
+}
 
 /**
  * Opens the terminal with given file name, changes its configuration
@@ -46,6 +75,8 @@ int setup_link_layer(const char* name) {
     struct termios newtio;
     memset(&newtio, 0, sizeof(struct termios));
 
+    int baud = select_baudrate();
+
     // c_iflag   Error handling...
     // IGNPAR :- Ignore framing errors and parity errors
     // ...
@@ -61,7 +92,7 @@ int setup_link_layer(const char* name) {
     // CREAD  :- Enable receiver
     // CSTOPB :- Set two stop bits, rather than one
     // ...
-    newtio.c_cflag = BAUDRATE | CS8 | CLOCAL | CREAD;
+    newtio.c_cflag = baud | CS8 | CLOCAL | CREAD;
 
     // c_lflag   Canonical or non canonical mode...
     // ICANON :- Enable canonical mode
@@ -80,6 +111,9 @@ int setup_link_layer(const char* name) {
     // leitura do(s) proximo(s) caracter(es)
 
     tcflush(fd, TCIOFLUSH);
+
+    //cfsetispeed(&newtio, B38400);
+    //cfsetospeed(&newtio, B38400);
 
     if (tcsetattr(fd, TCSANOW, &newtio) == -1) {
         perror("[SETUP] Failed to set new terminal settings (tcsetattr)");

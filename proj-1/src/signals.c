@@ -9,7 +9,6 @@
 #include <signal.h>
 #include <errno.h>
 #include <stdbool.h>
-#include <time.h>
 #include <sys/time.h>
 
 #define ALARM_TEST_SET           2500
@@ -21,8 +20,6 @@ static const char str_abort[] = "[SIG] -- Aborting...\n";
 static const char str_alarm[] = "[SIG] -- Alarmed...\n";
 
 static volatile sig_atomic_t alarmed = 0;
-
-static struct timespec timestamp[3];
 
 // SIGHUP, SIGQUIT, SIGTERM, SIGINT
 static void sighandler_kill(int signum) {
@@ -158,33 +155,4 @@ void test_alarm() {
     errno = 0;
 
     if (TRACE_SETUP) printf("[SETUP] Passed test_alarm()\n");
-}
-
-int begin_timing(size_t i) {    
-    if (TRACE_TIME) {
-        printf("[TIME] START Timing [%lu]\n", i);
-    }
-
-    clock_gettime(CLOCK_MONOTONIC, &timestamp[i]);
-
-    return 0;
-}
-
-int end_timing(size_t i) {
-    struct timespec end;
-    clock_gettime(CLOCK_MONOTONIC, &end);
-
-    if (TRACE_TIME) {
-        printf("[TIME] END timing [%lu]\n", i);
-    }
-
-    double s = (end.tv_sec - timestamp[i].tv_sec) * 1e3;
-    double ns = (end.tv_nsec - timestamp[i].tv_nsec) / 1e6;
-    double ms = s + ns;
-
-    timestamp[i].tv_sec = 0; timestamp[i].tv_nsec = 0;
-
-    printf("[STATS] Time [%lu] [ms=%.1lf]\n", i, ms);
-
-    return 0;
 }

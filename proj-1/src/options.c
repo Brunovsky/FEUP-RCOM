@@ -1,4 +1,5 @@
 #include "options.h"
+#include "ll-setup.h"
 #include "debug.h"
 
 #include <unistd.h>
@@ -20,14 +21,17 @@ static int dump = false; // dump
 int time_retries = TIME_RETRIES_DEFAULT; // time-retries
 int answer_retries = ANSWER_RETRIES_DEFAULT; // answer-retries
 int timeout = TIMEOUT_DEFAULT; // timeout
+int baudrate = BAUDRATE_DEFAULT;
 char* device = DEVICE_DEFAULT; // d, device
 size_t packetsize = PACKETSIZE_DEFAULT; // p, packetsize
 int send_filesize = PACKET_FILESIZE_DEFAULT; // filesize, no-filesize
 int send_filename = PACKET_FILENAME_DEFAULT; // filename, no-filename
 int my_role = DEFAULT_ROLE; // t, transmitter, r, receiver
+const char* role_string = NULL;
 double h_error_prob = H_ERROR_PROB_DEFAULT; // header-p
 double f_error_prob = F_ERROR_PROB_DEFAULT; // frame-p
 int error_type = ETYPE_DEFAULT; // error-byte, error-frame
+int show_statistics = STATS_DEFAULT;
 
 // Positional
 char** files = NULL;
@@ -46,6 +50,7 @@ static const struct option long_options[] = {
     {TIME_RETRIES_LFLAG,      required_argument, NULL,   TIME_RETRIES_FLAG},
     {ANSWER_RETRIES_LFLAG,    required_argument, NULL, ANSWER_RETRIES_FLAG},
     {TIMEOUT_LFLAG,           required_argument, NULL,        TIMEOUT_FLAG},
+    {BAUDRATE_LFLAG,          required_argument, NULL,       BAUDRATE_FLAG},
     {DEVICE_LFLAG,            required_argument, NULL,         DEVICE_FLAG},
     {PACKETSIZE_LFLAG,        required_argument, NULL,     PACKETSIZE_FLAG},
     //{PACKET_FILESIZE_LFLAG,         no_argument, &send_filesize,      true},
@@ -58,6 +63,7 @@ static const struct option long_options[] = {
     {FRAME_ERROR_P_LFLAG,     required_argument, NULL,  FRAME_ERROR_P_FLAG},
     {ETYPE_BYTE_LFLAG,              no_argument, &error_type,   ETYPE_BYTE},
     {ETYPE_FRAME_LFLAG,             no_argument, &error_type,  ETYPE_FRAME},
+    {STATS_LFLAG,                   no_argument, &show_statistics,    true},
     // end of options
     {0, 0, 0, 0}
     // format: {const char* lflag, int has_arg, int* flag, int val}
@@ -67,7 +73,7 @@ static const struct option long_options[] = {
 };
 
 // Enforce POSIX with leading +
-static const char* short_options = "Va:d:s:i:rth:f:";
+static const char* short_options = "Vtra:d:s:b:i:h:f:";
 // x for no_argument, x: for required_argument,
 // x:: for optional_argument (GNU extension),
 // x; to transform  -x foo  into  --foo
@@ -103,9 +109,11 @@ static const wchar_t* usage = L"usage:\n"
     "                               link-layer when an answer is invalid. \n"
     "                                 [Default is 100]                    \n"
     "      --timeout=N              Timeout for the link-layer, in ds.    \n"
-    "                               Applies to writes' alarms and reads   \n"
     "                                 [Default is 10]                     \n"
-    "  -d, --device=S               Set the device to use.                \n"
+    "  -b, --baudrate=N             Set the connection's baudrate.        \n"
+    "                               Should be equal for T and R.          \n"
+    "                                 [Default is 115200]                 \n"
+    "  -d, --device=S               Set the device.                       \n"
     "                                 [Default is /dev/ttyS0]             \n"
     "  -s, --packetsize=N           Set the packets' size, in bytes.      \n"
     "                               * Relevant only for the Transmitter.  \n"
@@ -123,10 +131,11 @@ static const wchar_t* usage = L"usage:\n"
     "      --error-byte,                                                  \n"
     "      --error-frame            Introduce the errors per-byte         \n"
     "                               or per-frame.                         \n"
-    "                                Default is per-frame.                \n"
+    "                                 [Default is per-frame]              \n"
     "                               Introducing errors per-byte may cause \n"
     "                               corrupted messages to pass undetected,\n"
-    "                               corrupting the received file.         \n"
+    "                               corrupting the output file(s).        \n"
+    "      --stats                  Show performance statistics.          \n"
     "\n";
 
 /**
@@ -138,23 +147,27 @@ static void clear_options() {
 
 static void dump_options() {
     static const char* dump_string = " === Options ===\n"
-        " show_help: %d\n"
-        " show_usage: %d\n"
-        " show_version: %d\n"
-        " time_retries: %d\n"
-        " answer_retries: %d\n"
-        " timeout: %d\n"
-        " device: %s\n"
-        " packetsize: %lu\n"
-        " my_role: %d (T=%d, R=%d)\n"
-        " number_of_files: %d\n"
-        " files: 0x%08x\n"
-        " header-p: %lf\n"
-        " frame-p: %lf\n";
+        " show_help: %d            \n"
+        " show_usage: %d           \n"
+        " show_version: %d         \n"
+        " time_retries: %d         \n"
+        " answer_retries: %d       \n"
+        " timeout: %d              \n"
+        " baudrate: %d             \n"
+        " device: %s               \n"
+        " packetsize: %lu          \n"
+        " my_role: %d (T=%d, R=%d) \n"
+        " number_of_files: %d      \n"
+        " files: 0x%08x            \n"
+        " header-p: %lf            \n"
+        " frame-p: %lf             \n"
+        " show_statistics: %d      \n"
+        "\n";
 
     printf(dump_string, show_help, show_usage, show_version, time_retries,
-        answer_retries, timeout, device, packetsize, my_role, TRANSMITTER,
-        RECEIVER, number_of_files, files, h_error_prob, f_error_prob);
+        answer_retries, timeout, baudrate, device, packetsize, my_role,
+        TRANSMITTER, RECEIVER, number_of_files, files, h_error_prob,
+        f_error_prob, show_statistics);
 
     if (files != NULL) {
         for (size_t i = 0; i < number_of_files; ++i) {
@@ -194,6 +207,14 @@ static void exit_nonumber(int n) {
     setlocale(LC_ALL, "");
     printf("[ARGS] Error: Expected 1 positionals (number of files), but got %d.\n", n);
     printf("%ls", usage);
+    exit(EXIT_SUCCESS);
+}
+
+static void exit_badpos(int n, const char* pos) {
+    if (DUMP_OPTIONS || dump) dump_options();
+
+    setlocale(LC_ALL, "");
+    printf("[ARGS] Error: Bad positional #%d: %s.\n%ls", n, pos, usage);
     exit(EXIT_SUCCESS);
 }
 
@@ -295,6 +316,11 @@ void parse_args(int argc, char** argv) {
                 exit_badarg(TIMEOUT_LFLAG);
             }
             break;
+        case BAUDRATE_FLAG:
+            if (parse_int(optarg, &baudrate) != 0 || !is_valid_baudrate(baudrate)) {
+                exit_badarg(BAUDRATE_LFLAG);
+            }
+            break;
         case DEVICE_FLAG:
             device = optarg;
             break;
@@ -336,6 +362,8 @@ void parse_args(int argc, char** argv) {
         exit_version();
     }
 
+    role_string = my_role == TRANSMITTER ? "Transmitter" : "Receiver";
+
     // Positional arguments processing
     switch (my_role) {
     case TRANSMITTER:
@@ -357,7 +385,7 @@ void parse_args(int argc, char** argv) {
         }
 
         if (parse_ulong(argv[optind++], &number_of_files) != 0 || number_of_files == 0) {
-            exit_badarg("number_of_files");
+            exit_badpos(1, argv[argc - 1]);
         }
 
         break;

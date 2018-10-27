@@ -67,6 +67,12 @@ extern char* device;
 #define PACKETSIZE_DEFAULT 1024
 extern size_t packetsize;
 
+// Set baudrate
+#define BAUDRATE_FLAG 'b'
+#define BAUDRATE_LFLAG "baudrate"
+#define BAUDRATE_DEFAULT 115200
+extern int baudrate;
+
 // Send or do not send filesize in START packet
 #define PACKET_FILESIZE_FLAG // none
 #define PACKET_FILESIZE_LFLAG "filesize"
@@ -89,6 +95,7 @@ extern int send_filename; // NOT IMPLEMENTED
 #define RECEIVER 2
 #define DEFAULT_ROLE RECEIVER
 extern int my_role;
+extern const char* role_string;
 
 #define HEADER_ERROR_P_FLAG 'h'
 #define FRAME_ERROR_P_FLAG 'f'
@@ -106,6 +113,11 @@ extern double f_error_prob;
 #define ETYPE_FRAME 0x72
 #define ETYPE_DEFAULT ETYPE_FRAME
 extern int error_type;
+
+#define STATS_FLAG '3'
+#define STATS_LFLAG "stats"
+#define STATS_DEFAULT false
+extern int show_statistics;
 // ----> END OF OPTIONS
 
 // <!--- POSITIONAL
