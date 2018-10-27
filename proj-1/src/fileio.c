@@ -127,7 +127,7 @@ int send_file(int fd, char* filename) {
     s = llclose(fd);
     end_timing(0);
 
-    print_stats(1, filesize);
+    if (show_statistics) print_stats(1, filesize);
 
     free_packets(packets, number_packets);
     return s ? 1 : 0;
@@ -251,7 +251,7 @@ int receive_file(int fd) {
     }
     end_timing(0);
 
-    print_stats(1, filesize);
+    if (show_statistics) print_stats(1, filesize);
 
     FILE* file = fopen(filename, "w");
     if (file == NULL) {
