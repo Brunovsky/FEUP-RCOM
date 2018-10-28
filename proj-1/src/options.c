@@ -80,9 +80,9 @@ static const char* short_options = "Vtra:d:s:b:i:h:f:";
 
 static const wchar_t* version = L"FEUP RCOM 2018-2019\n"
     "RCOM Comunicação Série v1.0\n"
-    "  Bruno Carvalho     up201606517\n"
-    "  João Malheiro      up201605926\n"
-    "  Daniel Gomes       up123456789\n"
+    "  Bruno Carvalho        up201606517\n"
+    "  João Malheiro         up201605926\n"
+    "  Carlos Daniel Gomes   up201603404\n"
     "\n";
 
 static const wchar_t* usage = L"usage:\n"
