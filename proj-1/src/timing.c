@@ -50,6 +50,10 @@ void print_stats(size_t i, size_t filesize) {
     printf(stats_string, role_string, ms, h, f, ferI,
         baudrate, packetsize, frameIsize, max_bits, max_bytes,
         max_packs, obs_bits, obs_bytes, obs_packs);
+
+    if (my_role == RECEIVER) {
+        printf("==STATS== Note: Verify if correct packetsize is used\n");
+    }
 }
 
 void begin_timing(size_t i) {    

@@ -9,7 +9,8 @@
 % Manipulation of titles (chapters, sections, ...)
 \usepackage[explicit,indentafter,nobottomtitles*]{titlesec}
 
-
+% Test
+%\usepackage{showframe}
 
 \graphicspath{{./images/}{./}{./contents/}}
 
@@ -45,7 +46,7 @@
 
 
 
-% ********** DOCUMENT'S TITLES AND HEADERS
+% ********** DOCUMENT'S TITLES, HEADERS AND FOOTERS
 \pagestyle{fancy}
 
 % Left Header
@@ -103,3 +104,16 @@
 
 
 % ********** DOCUMENT'S ALIASES AND COMMANDS
+\newcommand*{\function}[1]{\texttt{\detokenize{#1}}}
+\newcommand*{\struct}[1]{\textsl{\texttt{\detokenize{#1}}}}
+\newcommand*{\var}[1]{\textsl{\texttt{\detokenize{#1}}}}
+
+\newcommand*{\fI}{\var{I}}
+\newcommand*{\fSET}{\var{SET}}
+\newcommand*{\fDISC}{\var{DISC}}
+\newcommand*{\fUA}{\var{UA}}
+\newcommand*{\fRR}{\var{RR}}
+\newcommand*{\fREJ}{\var{REJ}}
+
+
+\newcommand*{\nullp}{\texttt{NULL}}

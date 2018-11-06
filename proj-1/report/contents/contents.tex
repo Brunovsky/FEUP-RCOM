@@ -1,17 +1,159 @@
-\documentclass[compilation.tex]{subfiles}
+\documentclass[main.tex]{subfiles}
 
 \begin{document}
 
-% This section needs a lot of work.
-\section{Introduction}
-\label{sec:intro}
+\section{Architecture}
+\label{sec:arch}
 
-In this lab we explore, implement and analyze two layers of a generic one-to-one communications protocol: the \emph{link layer} and the \emph{application layer} --- with emphasis on the first.
+We will now traverse \textit{bottom-up} the program's architectural aspects, including the internal and auxiliary functions of each layer, their interfaces and the primary data structures used. We will also discuss some parallel features, such as terminal setup, program options, signal handlers, execution timing and forced error introduction.
 
-To test our implementation of the protocols we wrap the application layer with a simple files transfer command-line program.
+\subsection{String}
+\label{subsec:string}
+
+Given that the byte arrays used throughout the program are \emph{not} \nullp-terminated strings --- but rather variable length and dynamically allocated --- they must be \textit{accompanied} by their size anytime they are passed between functions. The \struct{string} structure is a simple wrapper around a \struct{char*} and a \struct{size_t}.
+
+\subsection{Link Layer}
+\label{subsec:llarch}
+
+The link layer's core contains one fundamental, yet simple data structure: \struct{frame}. It holds information both for the frame's header ($A$ and $C$ fields) and the frame's data field.
+
+\subsubsection{Functions}
+\label{subsubsec:funcllarch}
+
+The core has the following functions:
+
+\begin{itemize}[noitemsep,rightmargin=3em]
+	\item Byte stuffing and destuffing: \function{stuffData}, \function{destuffData}, \function{destuffText}
+	\item Convert a \struct{frame} to a \struct{string} and write it to the device: \function{buildText}, \function{writeFrame}
+	\item Read text from the device and convert it to a \struct{frame}:
+	\function{readText}, \function{readFrame}
+\end{itemize}
+
+On top of these, we have simple utility functions used by the interface:
+
+\begin{itemize}[noitemsep,rightmargin=3em]
+\item Inquire frames: \function{is*frame} --- \function{isIframe}, \function{isSETframe}, \textellipsis
+\item Write frames: \function{write*frame} --- \function{writeIframe}, \function{writeSETframe}, \textellipsis
+\end{itemize}
+
+And the interface follows the specification:
+
+\begin{itemize}[noitemsep,rightmargin=3em]
+	\item Establish a connection through an open device: \function{llopen}
+	\item Terminate a connection through an open device: \function{llclose}
+	\item Write a message (frame): \function{llwrite}
+	\item Read a message (frame): \function{llread}
+\end{itemize}
+
+It should be noted that \function{llopen} and \function{llclose} \emph{do not} open or close the device, nor do they modify any terminal settings.
+
+\subsection{App Layer}
+\label{subsec:alarch}
+
+The app-layer makes public three data structures: \struct{tlv}, \struct{control_packet} and \struct{data_packet}. The control packet holds a sequence of \struct{tlv}, which are type/value pairs as described in the introduction. The data packet holds information for both the packet's header field and data field.
+
+\subsubsection{Functions}
+\label{subsubsec:funcalarch}
+
+The app-layer core has the following internal functions:
+
+\begin{itemize}[noitemsep,rightmargin=3em]
+	\item Convert integers and strings to \struct{tlv}s: \function{build_tlv_str}, \function{build_tlv_uint}
+	\item Convert a generic array of \struct{tlv}s to a \struct{control_packet}: \function{build_control_packet}
+	\item Convert a \struct{string} to a \struct{data_packet}: \function{build_data_packet}
+	\item Extract any \struct{tlv} value from a \struct{control_packet}: \function{get_tlv}
+	\item Inquire packets: \function{isDATApacket}, \function{isSTARTpacket}, \function{isENDpacket}
+\end{itemize}
+
+The interface provided to the application user includes:
+
+\begin{itemize}[noitemsep,rightmargin=3em]
+	\item Send control and data packets using llwrite and llread: \function{send_data_packet}, \function{send_start_packet}, \function{send_end_packet}
+	\item Receive (any) packet using llwrite and llread:
+	\function{receive_packet}
+	\item Extract filename and filesize from a \struct{control_packet}: \function{get_tlv_filesize}, \function{get_tlv_filename}
+\end{itemize}
+
+\subsection{Parallel features}
+\label{subsec:parallelarch}
+
+\begin{itemize}[noitemsep,rightmargin=3em]
+	\item Open chosen device and set new terminal settings: \function{setup_link_layer}
+	\item Close chosen device and set old terminal settings: \function{reset_link_layer}
+	\item Alarm utilities for write timeouts: \function{set_alarm}, \function{unset_alarm}, \function{was_alarmed}
+	\item Execution timing: \function{begin_timing}, \function{end_timing}
+	\item Compute and print statistics about error probabilities, communication speed and efficiency: \function{print_stats}
+	\item Introduce flip bits in read frames: \function{introduceErrors}
+\end{itemize}
+
+\section{Use cases and control flow}
+\label{sec:usecases}
+
+\subsubsection{Top level}
+
+Setup in function \function{main} includes parsing and validating program options --- \function{parse_args} ---, setting up signal handlers --- \function{set_signal_handlers} --- testing the system's alarms --- \function{test_alarm} --- and adjusting the terminal configuration (namely noncanonical mode) --- \function{setup_link_layer}. This is the same for $R$ and for $T$.
+
+In function \function{send_file}, called by $T$, the selected file is opened, its size is calculated and it is then read into a single \emph{buffer} and closed. The \emph{buffer} is then split into multiple \emph{packets} with length \var{packetsize} --- each stored in a \struct{string} --- and then freed. These packets are then sent to $R$ in the communications phase, each in its own data packet --- see \autoref{fig:al-transmitter}.
+
+Function \function{receive_file}, called by $R$, enters the communications phase immediately --- see \autoref{fig:al-receiver}. Once the transmission is completed it has received a filename and several packet strings. The output file is created with that filename, the packets are written successively, and then it is closed.
+
+Neither of these functions deal with any $AL$ errors. At the end of \function{main}, the terminal settings are reset with \function{reset_link_layer}.
+
+Simplified sequence diagrams for functions \function{llread} and \function{llwrite} can be found in \autoref{fig:llread} and \autoref{fig:llwrite} respectively.
+
+\begin{figure}[ph]
+	\caption{Sequence diagrams for some important functions\label{fig:seqdiagrams}}
+		
+	\begin{minipage}{0.5\textwidth}
+		\centering
+		\includegraphics[scale=0.45]{rcom-al-transmitter.pdf}
+		\subcaption{File communications as seen through the app layer (part of function \function{send_file})\label{fig:al-transmitter}}
+	\end{minipage}
+	\begin{minipage}{0.5\textwidth}
+		\centering
+		\includegraphics[scale=0.45]{rcom-al-receiver.pdf}
+		\subcaption{File communications as seen through the app layer (part of function \function{receive_file})\label{fig:al-receiver}}
+	\end{minipage}
+	\begin{minipage}{0.5\textwidth}
+		\centering
+		\includegraphics[scale=0.45]{rcom-llread.pdf}
+		\subcaption{Function \function{llread}\label{fig:llread}}
+	\end{minipage}
+	\begin{minipage}{0.5\textwidth}
+		\centering
+		\includegraphics[scale=0.45]{rcom-llwrite.pdf}
+		\subcaption{Function \function{llwrite}\label{fig:llwrite}}
+	\end{minipage}
+\end{figure}
 
 \section{Link Layer Protocol}
 \label{sec:llprotocol}
+
+In the $LL$ protocol we recognize these requirements:
+
+\begin{enumerate}[label=(\alph*),noitemsep,rightmargin=3em]
+	\item Canonical, state machine based reading loop of variable length byte arrays
+	\item Timeout in long reads and writes
+	\item Conversions between byte arrays and a generic frame data structure
+	\item Stuffing and destuffing byte arrays, representing valid or invalid generic frames
+	\item Error detection and reporting in read frames
+	\item Probability based error introduction in read frames
+	\item Identification and writing of protocol-defined frames
+\end{enumerate}
+
+Our $LL$ implementation consists of four units: \emph{core}, \emph{errors}, \emph{frames} and \emph{interface}.
+
+\paragraph{Core} The lowest unit of the entire program, it handles the first five requirements. Internally, both in reading and writing. It exposes only \function{writeFrame} and \function{readFrame}, which have \struct{frame} arguments. Function \function{writeFrame} calls \function{buildText} to transform the given \struct{frame} into a string, which is \textit{stuffed} by \function{stuffData} before being written. Function \function{readFrame} calls \function{readText}, the canonical read loop, and destuffs the string read with \function{destuffText}, while validating it and reporting on any detected errors.
+
+This unit supports the entire $LL$ by providing a generic read/write facility for frames of any kind --- supporting all valid frame headers and all frame lengths --- by handling only byte stuffing, error detection, and reading/writing timeouts.
+
+\paragraph{Errors} A simple unit whose purpose is to intentionally introduce errors (bit flips), with a certain probability, in both the header and data fields of frames read at the end of function \function{readText}.
+
+\paragraph{Frames} For each frame in the specification --- \fI{}, \fSET{}, \fDISC{}, \fUA{}, \fRR{}, and \fREJ{} --- this unit exposes a function which identifies it, \function{is*frame}, and another which writes it to a given file, \function{write*frame}.
+
+\paragraph{Interface} Includes specified functions \function{llopen}, \function{llwrite}, \function{llread} and \function{llclose}. These functions use only the facilities provided by the \emph{frames} unit. \function{llopen} is used to establish a connection between $R$ and $T$ by ensuring both ends are in sync; \function{llclose} is used to end it. These functions have different \textit{versions} for $R$ and $T$. While the connection is active, \function{llread} and \function{llwrite} are used to read and write from the connection respectively.
+
+\section{Application Layer Protocol}
 
 
 

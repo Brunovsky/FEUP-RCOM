@@ -1,0 +1,17 @@
+*.aux
+*.blg
+*.bbl
+*.bcf
+*.log
+*.synctex.gz
+*.run.xml
+*.out
+*.toc
+styles/*.aux
+styles/*.log
+styles/*.synctex.gz
+contents/*.aux
+contents/*.log
+contents/*.synctex.gz
+contents/*.out
+contents/*.aux
