@@ -1,0 +1,77 @@
+% ********** LANGUAGES
+
+%\usepackage{./styles/stylecore}
+
+\lstloadlanguages{[ANSI]C,[ISO]C++,[GNU]C++}
+
+% ********** LISTING STYLES
+
+% Gray comments
+\definecolor{sublime-comments}{gray}{0.75}
+
+% Strings
+\definecolor{sublime-strings}{rgb}{1.0,0.6,0.2}
+
+% Keywords (1)
+\definecolor{sublime-keyword}{rgb}{0.7,0.4,1.0}
+
+% Builtin (2)
+\definecolor{sublime-builtin}{rgb}{0.25,0.5,1.0}
+
+% Operators (3)
+\definecolor{sublime-operator}{rgb}{1.0,0.0,0.5}
+
+% Custom functions (4)
+\definecolor{sublime-custom}{rgb}{0.0,0.7,0.3}
+
+\lstdefinestyle{base}{
+	% Printed range
+	showlines=false,
+	emptylines=*3,
+	% Appearance
+	basicstyle=\ttfamily\small,
+	identifierstyle={},
+	commentstyle=\color{sublime-comments},
+	stringstyle=\color{sublime-strings},
+	keywordstyle=[1]\color{sublime-keyword},
+	keywordstyle=[2]\color{sublime-builtin},
+	keywordstyle=[3]\color{sublime-operator},
+	keywordstyle=[4]\color{sublime-custom},
+	% Getting characters, spaces and tabs right
+	inputencoding=utf8,
+	upquote=true,
+	showspaces=false,
+	showtabs=false,
+	showstringspaces=false,
+	tabsize=4,
+	formfeed={},
+	% Line numbers
+	numbers=none,
+	% Margins and line shape
+	breaklines,
+	breakatwhitespace,
+	breakindent=2em,
+	% Frames
+	frame=none,
+	% Column alignment
+	keepspaces=true
+}
+
+\lstdefinestyle{C-sublime}{
+	style=base,
+	% Language
+	language=[ANSI]C,
+	% Keywords
+	morekeywords=[1]{size_t,ssize_t,bool},
+	% Builtins
+	morekeywords=[2]{free,malloc,realloc,calloc,open,close,read,write},
+	morekeywords=[2]{fopen,fclose,fseek,ftell,rewind,fread,fwrite},
+	morekeywords=[2]{printf,sprintf,fprintf},
+	morekeywords=[2]{memcpy,strlen,strcat,strcpy},
+	morekeywords=[2]{strtod,strtol,getopt,getopt_long},
+	morekeywords=[2]{abort,exit,rand,srand},
+	morekeywords=[2]{sleep,usleep,sigaction,setitimer,clock_gettime},
+	% Operators
+	otherkeywords={+,-,*,\%,\&,|,\^,~,!,=,<,>},
+	morekeywords=[3]{+,-,*,\%,++,--,\&,|,\^,~,!,=,+=,-=,*=,/=,\%=,\&=,\^=,|=,==,!=,>,<,>=,<=,<<=,>>=,\&\&,||}
+}
