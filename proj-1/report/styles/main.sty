@@ -1,6 +1,6 @@
-% ********** MAIN PACKAGES
-% Load core style
 \usepackage{./styles/stylecore}
+
+\usepackage{./styles/code}
 
 % Include babel (Standard)
 % The primary language is the one on the right
@@ -8,11 +8,6 @@
 
 % Manipulation of titles (chapters, sections, ...)
 \usepackage[explicit,indentafter,nobottomtitles*]{titlesec}
-
-% Test
-%\usepackage{showframe}
-
-\graphicspath{{./images/}{./}{./contents/}}
 
 
 
@@ -26,7 +21,7 @@
 % ********** GEOMETRY
 \geometry{
     ignoreheadfoot,
-    hdivide = {3cm,,3cm},
+    hdivide = {2cm,,2cm},
     vdivide = {3cm,,3cm},
     heightrounded
 }
@@ -115,5 +110,22 @@
 \newcommand*{\fRR}{\var{RR}}
 \newcommand*{\fREJ}{\var{REJ}}
 
+\newcommand*{\pSTART}{\var{START}}
+\newcommand*{\pDATA}{\var{DATA}}
+\newcommand*{\pEND}{\var{END}}
 
 \newcommand*{\nullp}{\texttt{NULL}}
+
+
+
+% ********** DOCUMENT'S LISTING STYLES
+
+\lstdefinestyle{rcom}{
+	style=C-sublime,
+	basicstyle=\ttfamily\tiny,
+	morekeywords=[4]{llwrite,llread,llopen,llclose},
+	morekeywords=[4]{isDATApacket,isSTARTpacket,isENDpacket},
+	morekeywords=[4]{send_data_packet,send_start_packet,send_end_packet,receive_packet},
+	morekeywords=[4]{writeFrame,readFrame,readText,stuffData,destuffData,destuffText,buildText},
+	morekeywords=[4]{set_alarm,unset_alarm,was_alarmed}
+}

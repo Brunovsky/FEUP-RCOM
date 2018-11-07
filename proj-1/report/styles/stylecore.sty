@@ -40,7 +40,7 @@
 % Manipulate headers and footnotes
 \usepackage{fancyhdr}
 
-% Include links to pages from Table of Contents
+% Include links to pages from Table of Contents, use \autoref{}
 \usepackage[linktocpage=true]{hyperref}
 
 % Reference with \nameref{}
@@ -86,7 +86,19 @@
 % Include AMS's theorem utility (includes proof environment)
 \usepackage{amsthm}
 
-% Algorithm environments to write algorithms!
+% ********** PROGRAMMING PACKAGES
+
+% Typeset code
+\usepackage{listings}
+
+% Color
+\usepackage[usenames,dvipsnames]{color}
+
+% Algorithm environments to write algorithms
 \usepackage{algorithm}
 \usepackage{algorithmicx}
 \usepackage{algpseudocode}
+
+% ********** COMMONS
+
+\graphicspath{{./images/}{./}{./contents/}}

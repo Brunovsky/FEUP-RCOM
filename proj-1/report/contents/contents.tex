@@ -102,43 +102,127 @@ Neither of these functions deal with any $AL$ errors. At the end of \function{ma
 Simplified sequence diagrams for functions \function{llread} and \function{llwrite} can be found in \autoref{fig:llread} and \autoref{fig:llwrite} respectively.
 
 \begin{figure}[ph]
-	\caption{Sequence diagrams for some important functions\label{fig:seqdiagrams}}
-		
-	\begin{minipage}{0.5\textwidth}
-		\centering
-		\includegraphics[scale=0.45]{rcom-al-transmitter.pdf}
-		\subcaption{File communications as seen through the app layer (part of function \function{send_file})\label{fig:al-transmitter}}
-	\end{minipage}
-	\begin{minipage}{0.5\textwidth}
-		\centering
-		\includegraphics[scale=0.45]{rcom-al-receiver.pdf}
-		\subcaption{File communications as seen through the app layer (part of function \function{receive_file})\label{fig:al-receiver}}
-	\end{minipage}
-	\begin{minipage}{0.5\textwidth}
-		\centering
-		\includegraphics[scale=0.45]{rcom-llread.pdf}
-		\subcaption{Function \function{llread}\label{fig:llread}}
-	\end{minipage}
-	\begin{minipage}{0.5\textwidth}
-		\centering
-		\includegraphics[scale=0.45]{rcom-llwrite.pdf}
-		\subcaption{Function \function{llwrite}\label{fig:llwrite}}
-	\end{minipage}
+\caption{Sequence diagrams for some important functions\label{fig:seqdiagrams}}
+	
+\begin{minipage}{0.5\textwidth}
+	\centering
+	\includegraphics[scale=0.45]{rcom-al-transmitter.pdf}
+	\subcaption{File communications as seen through the app layer (part of function \function{send_file})\label{fig:al-transmitter}}
+\end{minipage}
+\begin{minipage}{0.5\textwidth}
+	\centering
+	\includegraphics[scale=0.45]{rcom-al-receiver.pdf}
+	\subcaption{File communications as seen through the app layer (part of function \function{receive_file})\label{fig:al-receiver}}
+\end{minipage}
+\begin{minipage}{0.5\textwidth}
+	\centering
+	\includegraphics[scale=0.45]{rcom-llread.pdf}
+	\subcaption{Function \function{llread}\label{fig:llread}}
+\end{minipage}
+\begin{minipage}{0.5\textwidth}
+	\centering
+	\includegraphics[scale=0.45]{rcom-llwrite.pdf}
+	\subcaption{Function \function{llwrite}\label{fig:llwrite}}
+\end{minipage}
 \end{figure}
 
 \section{Link Layer Protocol}
 \label{sec:llprotocol}
 
+\begin{wrapfigure}[40]{r}[1cm]{0.41\textwidth}
+\begin{lstlisting}[style=rcom]
+static int readText(int fd, string* textp) {
+	string text;
+	
+	text.len = 0;
+	text.s = malloc(8 * sizeof(char));
+	
+	size_t reserved = 8;
+	FrameReadState state = READ_PRE_FRAME;
+	int timed = 0;
+	
+	while (state != READ_END_FLAG) {
+		char readbuf[2];
+		ssize_t s = read(fd, readbuf, 1);
+		char c = readbuf[0];
+		
+		// [...] Errors and text.s realloc
+
+		switch (state) {
+		case READ_PRE_FRAME:
+			if (c == FRAME_FLAG) {
+				state = READ_START_FLAG;
+				text.s[text.len++] = FRAME_FLAG;
+			}
+			break;
+		case READ_START_FLAG:
+			if (c != FRAME_FLAG) {
+				if (FRAME_VALID_A(c)) {
+					state = READ_WITHIN_FRAME;
+					text.s[text.len++] = c;
+				} else {
+					state = READ_PRE_FRAME;
+					text.len = 0;
+				}
+			}
+			break;
+		case READ_WITHIN_FRAME:
+			if (c == FRAME_FLAG) {
+				state = READ_END_FLAG;
+				text.s[text.len++] = FRAME_FLAG;
+			} else {
+				text.s[text.len++] = c;
+			}
+			break;
+		default:
+			break;
+		}
+	}
+
+	text.s[text.len] = '\0';
+	
+	introduceErrors(text);
+	
+	*textp = text;
+	return 0;
+}
+
+
+
+int writeFrame(int fd, frame f) {
+	string text;
+	buildText(f, &text);
+	
+	set_alarm();
+	errno = 0;
+	ssize_t s = write(fd, text.s, text.len);
+	
+	int err = errno;
+	bool b = was_alarmed();
+	unset_alarm();
+	
+	free(text.s);
+	
+	if (b || err == EINTR) {
+		// [...] Report error
+		return FRAME_WRITE_TIMEOUT;
+	} else {
+		return FRAME_WRITE_OK;
+	}
+}
+\end{lstlisting}
+\end{wrapfigure}
+
 In the $LL$ protocol we recognize these requirements:
 
 \begin{enumerate}[label=(\alph*),noitemsep,rightmargin=3em]
-	\item Canonical, state machine based reading loop of variable length byte arrays
-	\item Timeout in long reads and writes
-	\item Conversions between byte arrays and a generic frame data structure
-	\item Stuffing and destuffing byte arrays, representing valid or invalid generic frames
-	\item Error detection and reporting in read frames
-	\item Probability based error introduction in read frames
-	\item Identification and writing of protocol-defined frames
+	\item Canonical, state machine based reading loop of variable length byte arrays;
+	\item Timeout in long reads and writes;
+	\item Conversions between byte arrays and a generic frame data structure;
+	\item Stuffing and destuffing byte arrays, representing valid or invalid generic frames;
+	\item Error detection and reporting in read frames;
+	\item Probability based error introduction in read frames;
+	\item Identification and writing of protocol-defined frames.
 \end{enumerate}
 
 Our $LL$ implementation consists of four units: \emph{core}, \emph{errors}, \emph{frames} and \emph{interface}.
@@ -155,6 +239,103 @@ This unit supports the entire $LL$ by providing a generic read/write facility fo
 
 \section{Application Layer Protocol}
 
+\begin{wrapfigure}[38]{r}[1cm]{0.41\textwidth}
+\begin{lstlisting}[style=rcom]
+static bool isDATApacket(string packet_str, data_packet* outp) {
+	char c = packet_str.s[0];
+	
+	if (packet_str.len < 5 || packet_str.s == NULL || c != PCONTROL_DATA) {
+		// [...] Report result
+		return false;
+	}
+	
+	int index = (unsigned char)packet_str.s[1];
+	unsigned char l2 = packet_str.s[2];
+	unsigned char l1 = packet_str.s[3];
+	size_t len = (size_t)l1 + 256 * (size_t)l2;
+	
+	bool b = len == (packet_str.len - 4);
+	
+	// [...] Report result
+	
+	if (b) {
+		string data;
+		
+		data.len = len;
+		data.s = malloc((len + 1) * sizeof(char));
+		memcpy(data.s, packet_str.s + 4, len + 1);
+		
+		data_packet out = {index, data};
+		
+		*outp = out;
+		
+		if (index != in_packet_index % 256) {
+			printf("[APP] Error: Expected DATA packet #%d, got #%d\n",
+			in_packet_index % 256, index);
+		}
+	}
+	return b;
+}
 
+
+
+int receive_packet(int fd, data_packet* datap,
+	  control_packet* controlp) {
+	int s;
+	
+	string packet;
+	s = llread(fd, &packet);
+	if (s != 0) return s;
+	
+	data_packet data;
+	control_packet control;
+	
+	if (isDATApacket(packet, &data)) {
+		++in_packet_index;
+		*datap = data;
+		
+		free(packet.s);
+		return PRECEIVE_DATA;
+	}
+	
+	if (isSTARTpacket(packet, &control)) {
+		in_packet_index = 0;
+		*controlp = control;
+		
+		free(packet.s);
+		return PRECEIVE_START;
+	}
+	
+	if (isENDpacket(packet, &control)) {
+		in_packet_index = 0;
+		*controlp = control;
+		
+		free(packet.s);
+		return PRECEIVE_END;
+	}
+	
+	printf("[APP] Error: Received BAD packet\n");
+	free(packet.s);
+	return PRECEIVE_BAD_PACKET;
+}
+\end{lstlisting}
+\end{wrapfigure}
+
+In the $AL$ protocol we recognize these requirements:
+
+\begin{enumerate}[label=(\alph*),noitemsep,rightmargin=3em]
+	\item Representation of generic control packets and data packets;
+	\item Construction of a control packet from a list of values;
+	\item Construction of a data packet from a string;
+	\item Identification, parsing and writing of protocol-defined packets;
+	\item Extraction of \struct{tlv} values from control packets, namely filesize and filename;
+	\item Error detection and reporting of mis-indexed \pDATA{} packets or bad packets.
+\end{enumerate}
+
+Our $AL$ implementation, unlike the $LL$ implementation, is not further divided. Each of these requirements is satisfied by a set of specialized functions, and the interface is essentially \function{send_data_packet}, \function{send_start_packet}, \function{send_end_packet} and \function{receive_packet}.
+
+The first function, \function{send_data_packet}, takes a \struct{string}, prepends it with a packet header using \function{build_data_packet}, and writes it using \function{llwrite}. The packet index is kept in an internal counter \var{out_packet_index}. The other functions \function{send_start_packet} and \function{send_end_packet} first build two \struct{tlv} for the filesize and filename using \function{build_tlv_*}, then build the control packet string using \function{build_control_packet}, and finally write it using \function{llwrite}.
+
+The \function{receive_packet} function reads an arbitrary packet using \function{llread}, and then uses \function{isDATApacket}, \function{isSTARTpacket} or \function{isENDpacket} to identify \emph{and} parse said packet. The packet index is also kept in an internal counter \var{in_packet_index}.
 
 \end{document}
