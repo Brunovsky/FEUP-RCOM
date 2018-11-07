@@ -41,7 +41,7 @@
 
 
 
-% ********** DOCUMENT'S TITLES AND HEADERS
+% ********** DOCUMENT'S TITLES, HEADERS AND FOOTERS
 \pagestyle{fancy}
 
 % Left Header
@@ -99,3 +99,33 @@
 
 
 % ********** DOCUMENT'S ALIASES AND COMMANDS
+\newcommand*{\function}[1]{\texttt{\detokenize{#1}}}
+\newcommand*{\struct}[1]{\textsl{\texttt{\detokenize{#1}}}}
+\newcommand*{\var}[1]{\textsl{\texttt{\detokenize{#1}}}}
+
+\newcommand*{\fI}{\var{I}}
+\newcommand*{\fSET}{\var{SET}}
+\newcommand*{\fDISC}{\var{DISC}}
+\newcommand*{\fUA}{\var{UA}}
+\newcommand*{\fRR}{\var{RR}}
+\newcommand*{\fREJ}{\var{REJ}}
+
+\newcommand*{\pSTART}{\var{START}}
+\newcommand*{\pDATA}{\var{DATA}}
+\newcommand*{\pEND}{\var{END}}
+
+\newcommand*{\nullp}{\texttt{NULL}}
+
+
+
+% ********** DOCUMENT'S LISTING STYLES
+
+\lstdefinestyle{rcom}{
+	style=C-sublime,
+	basicstyle=\ttfamily\tiny,
+	morekeywords=[4]{llwrite,llread,llopen,llclose},
+	morekeywords=[4]{isDATApacket,isSTARTpacket,isENDpacket},
+	morekeywords=[4]{send_data_packet,send_start_packet,send_end_packet,receive_packet},
+	morekeywords=[4]{writeFrame,readFrame,readText,stuffData,destuffData,destuffText,buildText},
+	morekeywords=[4]{set_alarm,unset_alarm,was_alarmed}
+}

@@ -15,7 +15,7 @@ static void seed_srand() {
     srand_seeded = true;
 }
 
-static char corruptByte(char byte) {
+static inline char corruptByte(char byte) {
     return byte ^ (1 << (rand() % 8));
 }
 

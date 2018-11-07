@@ -252,6 +252,7 @@ typedef enum {
  *         FRAME_READ_TIMEOUT if a timeout occurred
  *         FRAME_READ_INVALID if some other unknown error occurred
  */
+
 static int readText(int fd, string* textp) {
     string text;
 
@@ -259,9 +260,7 @@ static int readText(int fd, string* textp) {
     text.s = malloc(8 * sizeof(char));
 
     size_t reserved = 8;
-
     FrameReadState state = READ_PRE_FRAME;
-
     int timed = 0;
 
     while (state != READ_END_FLAG) {
@@ -269,6 +268,7 @@ static int readText(int fd, string* textp) {
         ssize_t s = read(fd, readbuf, 1);
         char c = readbuf[0];
 
+        // Errors and text.s realloc
         if (DEEP_DEBUG) {
             printf("[LLREAD] s:%01d  c:%02x  state:%01d  |  %c\n",
                 (int)s, (unsigned char)c, state, c);
@@ -345,7 +345,6 @@ static int readText(int fd, string* textp) {
                 text.s[text.len++] = c;
             }
             break;
-        case READ_END_FLAG:
         default:
             break;
         }
@@ -399,6 +398,7 @@ int writeFrame(int fd, frame f) {
  *         FRAME_READ_TIMEOUT if a timeout occurred while reading
  *         FRAME_READ_INVALID if the frame read is invalid
  */
+
 int readFrame(int fd, frame* fp) {
     string text;
     frame dummy = {0, 0, {NULL, 0}};
@@ -410,7 +410,8 @@ int readFrame(int fd, frame* fp) {
 
     if (text.len < 5 || text.len == 6) {
         if (TRACE_LL_ERRORS) {
-            printf("[LLERR] Bad Length [len=%lu]\n", text.len);
+            printf("[LLERR] Bad Length [len=%lu]\n",
+                text.len);
         }
         free(text.s);
         return FRAME_READ_INVALID;

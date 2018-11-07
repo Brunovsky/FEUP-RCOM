@@ -356,7 +356,8 @@ int send_end_packet(int fd, size_t filesize, char* filename) {
     return s;
 }
 
-int receive_packet(int fd, data_packet* datap, control_packet* controlp) {
+int receive_packet(int fd, data_packet* datap,
+        control_packet* controlp) {
     int s;
 
     string packet;
@@ -394,3 +395,6 @@ int receive_packet(int fd, data_packet* datap, control_packet* controlp) {
     free(packet.s);
     return PRECEIVE_BAD_PACKET;
 }
+
+
+
