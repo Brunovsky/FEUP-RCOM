@@ -414,6 +414,7 @@ int readFrame(int fd, frame* fp) {
                 text.len);
         }
         free(text.s);
+        ++counter.read.len;
         return FRAME_READ_INVALID;
     }
 
@@ -431,6 +432,7 @@ int readFrame(int fd, frame* fp) {
                 f.a, f.c, bcc1);
         }
         free(text.s);
+        ++counter.read.bcc1;
         return FRAME_READ_INVALID;
     }
 
@@ -441,6 +443,7 @@ int readFrame(int fd, frame* fp) {
 
         if (s != 0) {
             free(text.s);
+            ++counter.read.bcc2;
             return FRAME_READ_INVALID;
         }
 

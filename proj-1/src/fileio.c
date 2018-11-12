@@ -73,7 +73,7 @@ int send_file(int fd, char* filename) {
 
     // Split the buffer into various strings.
     // The last one will have a smaller size.
-    size_t number_packets = (filesize + packetsize - 1) / packetsize;
+    size_t number_packets = number_of_packets(filesize);
     string* packets = malloc(number_packets * sizeof(string));
 
     for (size_t i = 0; i < number_packets - 1; ++i) {
@@ -229,7 +229,7 @@ int receive_file(int fd) {
                         filename);
                 }
             }
-
+            
             free(end_filename);
             free_control_packet(cp);
             break;

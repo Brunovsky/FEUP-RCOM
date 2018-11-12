@@ -1,5 +1,6 @@
 #include "ll-interface.h"
 #include "ll-frames.h"
+#include "ll-errors.h"
 #include "options.h"
 #include "debug.h"
 
@@ -20,7 +21,7 @@ static int llopen_transmitter(int fd) {
     while (time_count < time_retries && answer_count < answer_retries) {
         int s = writeSETframe(fd);
         if (s != FRAME_WRITE_OK) {
-            ++time_count;
+            ++time_count, ++counter.timeout;
             continue;
         }
 
@@ -43,10 +44,10 @@ static int llopen_transmitter(int fd) {
                 }
                 return LL_OK;
             }
-            ++answer_count;
+            ++answer_count, ++counter.invalid;
             break;
         case FRAME_READ_TIMEOUT:
-            ++time_count;
+            ++time_count, ++counter.timeout;
             break;
         }
     }
@@ -86,10 +87,10 @@ static int llopen_receiver(int fd) {
             }
             // FALLTHROUGH
         case FRAME_READ_INVALID:
-            ++answer_count;
+            ++answer_count, ++counter.invalid;
             break;
         case FRAME_READ_TIMEOUT:
-            ++time_count;
+            ++time_count, ++counter.timeout;
             break;
         }
     }
@@ -117,7 +118,7 @@ static int llclose_transmitter(int fd) {
     while (time_count < time_retries && answer_count < answer_retries) {
         int s = writeDISCframe(fd);
         if (s != FRAME_WRITE_OK) {
-            ++time_count;
+            ++time_count, ++counter.timeout;
             continue;
         }
 
@@ -135,10 +136,10 @@ static int llclose_transmitter(int fd) {
             }
             // FALLTHROUGH
         case FRAME_READ_INVALID:
-            ++answer_count;
+            ++answer_count, ++counter.invalid;
             break;
         case FRAME_READ_TIMEOUT:
-            ++time_count;
+            ++time_count, ++counter.timeout;
             break;
         }
     }
@@ -207,7 +208,7 @@ answer:
                         }
                         return LL_OK;
                     } else {
-                        ++time_count;
+                        ++time_count, ++counter.timeout;
                         continue;
                     }
                 }
@@ -235,7 +236,7 @@ answer:
                         }
                         return LL_OK;
                     }
-                    ++time_count;
+                    ++time_count, ++counter.timeout;
                     break;
                 }
 
@@ -244,10 +245,10 @@ answer:
             // FALLTHROUGH
         case FRAME_READ_INVALID:
             answerBADframe(fd, f);
-            ++answer_count;
+            ++answer_count, ++counter.invalid;
             break;
         case FRAME_READ_TIMEOUT:
-            ++time_count;
+            ++time_count, ++counter.timeout;
             break;
         }
     }
@@ -290,7 +291,7 @@ int llwrite(int fd, string message) {
     while (time_count < time_retries && answer_count < answer_retries) {
         int s = writeIframe(fd, message, index);
         if (s != FRAME_WRITE_OK) {
-            ++time_count;
+            ++time_count, ++counter.timeout;
             continue;
         }
 
@@ -311,14 +312,14 @@ int llwrite(int fd, string message) {
                 if (TRACE_LL) {
                     printf("[LL] llwrite: invalid response (not RR or REJ)\n");
                 }
-                ++answer_count;
+                ++answer_count, ++counter.invalid;
             }
             break;
         case FRAME_READ_INVALID:
-            ++answer_count;
+            ++answer_count, ++counter.invalid;
             break;
         case FRAME_READ_TIMEOUT:
-            ++time_count;
+            ++time_count, ++counter.timeout;
             break;
         }
     }
@@ -359,7 +360,7 @@ int llread(int fd, string* messagep) {
                 return LL_OK;
             } else if (isIframe(f, index + 1)) {
                 writeRRframe(fd, index);
-                ++answer_count;
+                ++answer_count, ++counter.invalid;
                 if (TRACE_LL) {
                     printf("[LL] llread: Expected frame %d, got frame %d\n",
                         index % 2, (index + 1) % 2);
@@ -369,10 +370,10 @@ int llread(int fd, string* messagep) {
             break;
         case FRAME_READ_INVALID:
             writeREJframe(fd, index);
-            ++answer_count;
+            ++answer_count, ++counter.invalid;
             break;
         case FRAME_READ_TIMEOUT:
-            ++time_count;
+            ++time_count, ++counter.timeout;
             break;
         }
     }

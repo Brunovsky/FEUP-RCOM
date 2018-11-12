@@ -3,6 +3,8 @@
 
 #include "app-layer.h"
 
+size_t number_of_packets(size_t filesize);
+
 int send_file(int fd, char* filename);
 
 int receive_file(int fd);
