@@ -1,11 +1,12 @@
 #include "ll-interface.h"
 #include "ll-frames.h"
-#include "ll-errors.h"
 #include "options.h"
 #include "debug.h"
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <termios.h>
+#include <unistd.h>
 
 /**
  * llopen for T
@@ -17,6 +18,8 @@
  */
 static int llopen_transmitter(int fd) {
     int time_count = 0, answer_count = 0;
+
+    tcflush(fd, TCIFLUSH);
 
     while (time_count < time_retries && answer_count < answer_retries) {
         int s = writeSETframe(fd);
@@ -71,6 +74,8 @@ static int llopen_transmitter(int fd) {
  */
 static int llopen_receiver(int fd) {
     int time_count = 0, answer_count = 0;
+
+    tcflush(fd, TCOFLUSH);
 
     while (time_count < time_retries && answer_count < answer_retries) {
         frame f;

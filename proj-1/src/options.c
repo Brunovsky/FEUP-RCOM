@@ -42,28 +42,30 @@ size_t number_of_files = 0;
 
 static const struct option long_options[] = {
     // general options
-    {HELP_LFLAG,                    no_argument, &show_help,          true},
-    {USAGE_LFLAG,                   no_argument, &show_usage,         true},
-    {VERSION_LFLAG,                 no_argument, &show_version,       true},
-    {DUMP_LFLAG,                    no_argument, &dump,               true},
+    {HELP_LFLAG,                    no_argument, &show_help,                true},
+    {USAGE_LFLAG,                   no_argument, &show_usage,               true},
+    {VERSION_LFLAG,                 no_argument, &show_version,             true},
+    {DUMP_LFLAG,                    no_argument, &dump,                     true},
 
-    {TIME_RETRIES_LFLAG,      required_argument, NULL,   TIME_RETRIES_FLAG},
-    {ANSWER_RETRIES_LFLAG,    required_argument, NULL, ANSWER_RETRIES_FLAG},
-    {TIMEOUT_LFLAG,           required_argument, NULL,        TIMEOUT_FLAG},
-    {BAUDRATE_LFLAG,          required_argument, NULL,       BAUDRATE_FLAG},
-    {DEVICE_LFLAG,            required_argument, NULL,         DEVICE_FLAG},
-    {PACKETSIZE_LFLAG,        required_argument, NULL,     PACKETSIZE_FLAG},
-    //{PACKET_FILESIZE_LFLAG,         no_argument, &send_filesize,      true},
-    //{PACKET_NOFILESIZE_LFLAG,       no_argument, &send_filesize,     false},
-    //{PACKET_FILENAME_LFLAG,         no_argument, &send_filename,      true},
-    //{PACKET_NOFILENAME_LFLAG,       no_argument, &send_filename,     false},
-    {TRANSMITTER_LFLAG,             no_argument, NULL,    TRANSMITTER_FLAG},
-    {RECEIVER_LFLAG,                no_argument, NULL,       RECEIVER_FLAG},
-    {HEADER_ERROR_P_LFLAG,    required_argument, NULL, HEADER_ERROR_P_FLAG},
-    {FRAME_ERROR_P_LFLAG,     required_argument, NULL,  FRAME_ERROR_P_FLAG},
-    {ETYPE_BYTE_LFLAG,              no_argument, &error_type,   ETYPE_BYTE},
-    {ETYPE_FRAME_LFLAG,             no_argument, &error_type,  ETYPE_FRAME},
-    {STATS_LFLAG,                   no_argument, &show_statistics,    true},
+    {TIME_RETRIES_LFLAG,      required_argument, NULL,         TIME_RETRIES_FLAG},
+    {ANSWER_RETRIES_LFLAG,    required_argument, NULL,       ANSWER_RETRIES_FLAG},
+    {TIMEOUT_LFLAG,           required_argument, NULL,              TIMEOUT_FLAG},
+    {BAUDRATE_LFLAG,          required_argument, NULL,             BAUDRATE_FLAG},
+    {DEVICE_LFLAG,            required_argument, NULL,               DEVICE_FLAG},
+    {PACKETSIZE_LFLAG,        required_argument, NULL,           PACKETSIZE_FLAG},
+    //{PACKET_FILESIZE_LFLAG,         no_argument, &send_filesize,            true},
+    //{PACKET_NOFILESIZE_LFLAG,       no_argument, &send_filesize,           false},
+    //{PACKET_FILENAME_LFLAG,         no_argument, &send_filename,            true},
+    //{PACKET_NOFILENAME_LFLAG,       no_argument, &send_filename            false},
+    {TRANSMITTER_LFLAG,             no_argument, NULL,          TRANSMITTER_FLAG},
+    {RECEIVER_LFLAG,                no_argument, NULL,             RECEIVER_FLAG},
+    {HEADER_ERROR_P_LFLAG,    required_argument, NULL,       HEADER_ERROR_P_FLAG},
+    {FRAME_ERROR_P_LFLAG,     required_argument, NULL,        FRAME_ERROR_P_FLAG},
+    {ETYPE_BYTE_LFLAG,              no_argument, &error_type,         ETYPE_BYTE},
+    {ETYPE_FRAME_LFLAG,             no_argument, &error_type,        ETYPE_FRAME},
+    {NOSTATS_LFLAG,                 no_argument, &show_statistics,    STATS_NONE},
+    {STATS_LFLAG,                   no_argument, &show_statistics,    STATS_LONG},
+    {COMPACT_LFLAG,                 no_argument, &show_statistics, STATS_COMPACT},
     // end of options
     {0, 0, 0, 0}
     // format: {const char* lflag, int has_arg, int* flag, int val}
@@ -135,6 +137,8 @@ static const wchar_t* usage = L"usage:\n"
     "                               Introducing errors per-byte may cause \n"
     "                               corrupted messages to pass undetected,\n"
     "                               corrupting the output file(s).        \n"
+    "      --no-stats,                                                    \n"
+    "      --compact,                                                     \n"
     "      --stats                  Show performance statistics.          \n"
     "\n";
 

@@ -20,6 +20,54 @@ double average_packetsize(size_t filesize) {
     return (double)filesize / number_of_packets(filesize);
 }
 
+static void print_stats_compact(size_t i, size_t filesize) {
+    static const char* stats_string = "[STATS %s]\n"
+        "==STATS==  %.5lf seconds                      \n"
+        "==STATS==  %9.2f Bits/s                       \n"
+        "==STATS==  %9.2f Bytes/s                      \n"
+        "==STATS==  %9.2f Packs/s                      \n"
+        "==STATS==  %6d Timeouts                       \n"
+        "==STATS==  %6d I | %6d RR | %6d REJ           \n"
+        "==STATS==  %6d Invalid | %6d BCC1 | %6d BCC2  \n"
+        "==STATS==\n";
+
+    double ms = times[i];
+    double s = ms / 1000.0;
+
+    // Observed
+    double obs_bits = 8.0 * filesize / s;
+    double obs_bytes = filesize / s;
+    double obs_packs = obs_bytes / average_packetsize(filesize);
+
+    if (my_role == TRANSMITTER) {
+        printf(stats_string, role_string,
+            s,
+            obs_bits,
+            obs_bytes,
+            obs_packs,
+            counter.timeout,
+            counter.out.I[0] + counter.out.I[1],
+            counter.in.RR[0] + counter.in.RR[1],
+            counter.in.REJ[0] + counter.in.REJ[1],
+            counter.invalid,
+            counter.read.bcc1,
+            counter.read.bcc2);
+    } else {
+        printf(stats_string, role_string,
+            s,
+            obs_bits,
+            obs_bytes,
+            obs_packs,
+            counter.timeout,
+            counter.in.I[0] + counter.in.I[1],
+            counter.out.RR[0] + counter.out.RR[1],
+            counter.out.REJ[0] + counter.out.REJ[1],
+            counter.invalid,
+            counter.read.bcc1,
+            counter.read.bcc2);
+    }
+}
+
 static void print_stats_receiver(size_t i, size_t filesize) {
     static const char* stats_string = "[STATISTICS RECEIVER]\n"
         "==STATS==  Total Time:  %.5lf seconds                \n"
@@ -33,19 +81,17 @@ static void print_stats_receiver(size_t i, size_t filesize) {
         "==STATS==    I frame Size %7d bytes (average)        \n"
         "==STATS==    %6d Data packets (+2 total)             \n"
         "==STATS==  Efficiency:                               \n"
-        "==STATS==   Observed | Maximum(b) | Maximum(B)       \n"
-        "==STATS==    %11.2f | %11.2f | %11.2f Bits/s         \n"
-        "==STATS==    %11.2f | %11.2f | %11.2f Bytes/s        \n"
-        "==STATS==    %11.2f | %11.2f | %11.2f Packs/s        \n"
+        "==STATS==    Observed |  Max (b)  |  Max (B)         \n"
+        "==STATS==    %9.2f | %9.2f | %9.2f Bits/s            \n"
+        "==STATS==    %9.2f | %9.2f | %9.2f Bytes/s           \n"
+        "==STATS==    %9.3f | %9.3f | %9.3f Packs/s           \n"
         "==STATS==    %6d Timeouts                            \n"
         "==STATS==  Frames Received:                          \n"
-        "==STATS==    %8d I frames                            \n"
-        "==STATS==    %8d Invalid or unexpected               \n"
+        "==STATS==    %6d I   | %6d I0   | %6d I1             \n"
+        "==STATS==    %6d Invalid or unexpected               \n"
         "==STATS==  Frames Transmitted:                       \n"
-        "==STATS==    %6d RR frames                           \n"
-        "==STATS==      %6d RR0  %6d RR1                      \n"
-        "==STATS==    %6d REJ frames                          \n"
-        "==STATS==      %6d REJ0  %6d REJ1                    \n"
+        "==STATS==    %6d RR  | %6d RR0  | %6d RR1            \n"
+        "==STATS==    %6d REJ | %6d REJ0 | %6d REJ1           \n"
         "==STATS==  Reading Errors:                           \n"
         "==STATS==    %6d Bad frame length                    \n"
         "==STATS==    %6d Bad BCC1                            \n"
@@ -81,7 +127,8 @@ static void print_stats_receiver(size_t i, size_t filesize) {
         obs_bytes, max_bytes, max_bytes * 8.0,
         obs_packs, max_packs, max_packs * 8.0,
         counter.timeout,
-        counter.in.I,
+        counter.in.I[0] + counter.in.I[1],
+        counter.in.I[0], counter.in.I[1],
         counter.invalid,
         counter.out.RR[0] + counter.out.RR[1],
         counter.out.RR[0], counter.out.RR[1],
@@ -104,18 +151,16 @@ static void print_stats_transmitter(size_t i, size_t filesize) {
         "==STATS==    %6d Data packets (+2 total)             \n"
         "==STATS==  Efficiency:                               \n"
         "==STATS==   Observed | Maximum(b) | Maximum(B)       \n"
-        "==STATS==    %11.2f | %11.2f | %11.2f Bits/s         \n"
-        "==STATS==    %11.2f | %11.2f | %11.2f Bytes/s        \n"
-        "==STATS==    %11.2f | %11.2f | %11.2f Packs/s        \n"
+        "==STATS==    %9.2f | %9.2f | %9.2f Bits/s            \n"
+        "==STATS==    %9.2f | %9.2f | %9.2f Bytes/s           \n"
+        "==STATS==    %9.3f | %9.3f | %9.3f Packs/s           \n"
         "==STATS==    %6d Timeouts                            \n"
         "==STATS==  Frames Transmitted:                       \n"
-        "==STATS==    %8d I frames                            \n"
+        "==STATS==    %6d I   | %6d I0   | %6d I1             \n"
         "==STATS==  Frames Received:                          \n"
-        "==STATS==    %6d RR frames                           \n"
-        "==STATS==      %6d RR0  %6d RR1                      \n"
-        "==STATS==    %6d REJ frames                          \n"
-        "==STATS==      %6d REJ0  %6d REJ1                    \n"
-        "==STATS==  %8d Invalid or unexpected                 \n"
+        "==STATS==    %6d RR  | %6d RR0  | %6d RR1            \n"
+        "==STATS==    %6d REJ | %6d REJ0 | %6d REJ1           \n"
+        "==STATS==    %6d Invalid or unexpected               \n"
         "==STATS==  Reading Errors:                           \n"
         "==STATS==    %6d Bad frame length                    \n"
         "==STATS==    %6d Bad BCC1                            \n"
@@ -150,7 +195,8 @@ static void print_stats_transmitter(size_t i, size_t filesize) {
         obs_bytes, max_bytes, max_bytes * 8.0,
         obs_packs, max_packs, max_packs * 8.0,
         counter.timeout,
-        counter.out.I,
+        counter.out.I[0] + counter.out.I[1],
+        counter.out.I[0], counter.out.I[1],
         counter.in.RR[0] + counter.in.RR[1],
         counter.in.RR[0], counter.in.RR[1],
         counter.in.REJ[0] + counter.in.REJ[1],
@@ -162,10 +208,14 @@ static void print_stats_transmitter(size_t i, size_t filesize) {
 }
 
 void print_stats(size_t i, size_t filesize) {
-    if (my_role == RECEIVER) {
-        print_stats_receiver(i, filesize);
-    } else {
-        print_stats_transmitter(i, filesize);
+    if (show_statistics == STATS_COMPACT) {
+        print_stats_compact(i, filesize);
+    } else if (show_statistics == STATS_LONG) {
+        if (my_role == RECEIVER) {
+            print_stats_receiver(i, filesize);
+        } else {
+            print_stats_transmitter(i, filesize);
+        }
     }
 }
 
@@ -192,5 +242,7 @@ void end_timing(size_t i) {
     times[i] = ts + tns;
     timestamp[i].tv_sec = 0; timestamp[i].tv_nsec = 0;
 
-    printf("[STATS] Time [%lu] [ms=%.1lf]\n", i, times[i]);
+    if (TRACE_TIME) {
+        printf("[STATS] Time [%lu] [ms=%.1lf]\n", i, times[i]);
+    }
 }

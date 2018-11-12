@@ -2,8 +2,9 @@
 #include "app-layer.h"
 #include "ll-interface.h"
 #include "options.h"
-#include "debug.h"
 #include "timing.h"
+#include "signals.h"
+#include "debug.h"
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -282,6 +283,8 @@ error:
 int send_files(int fd) {
     for (size_t i = 0; i < number_of_files; ++i) {
         int s = send_file(fd, files[i]);
+        await_timeout();
+        reset_counter();
         if (s != 0) return 1;
     }
     return 0;
@@ -290,6 +293,8 @@ int send_files(int fd) {
 int receive_files(int fd) {
     for (size_t i = 0; i < number_of_files; ++i) {
         int s = receive_file(fd);
+        await_timeout();
+        reset_counter();
         if (s != 0) return 1;
     }
     return 0;

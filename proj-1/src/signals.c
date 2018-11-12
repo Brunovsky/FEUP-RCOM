@@ -156,3 +156,11 @@ void test_alarm() {
 
     if (TRACE_SETUP) printf("[SETUP] Passed test_alarm()\n");
 }
+
+void await_timeout() {
+    if (my_role == TRANSMITTER) {
+        usleep(160000 * timeout);
+    } else {
+        usleep(60000 * timeout);
+    }
+}

@@ -6,8 +6,6 @@
 #include <stdio.h>
 #include <time.h>
 
-communication_count_t counter;
-
 static bool srand_seeded = false;
 
 static void seed_srand() {

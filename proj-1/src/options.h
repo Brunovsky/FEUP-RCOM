@@ -115,8 +115,13 @@ extern double f_error_prob;
 extern int error_type;
 
 #define STATS_FLAG '3'
+#define NOSTATS_LFLAG "no-stats"
 #define STATS_LFLAG "stats"
-#define STATS_DEFAULT false
+#define COMPACT_LFLAG "compact"
+#define STATS_NONE 0
+#define STATS_LONG 1
+#define STATS_COMPACT 2
+#define STATS_DEFAULT STATS_NONE
 extern int show_statistics;
 // ----> END OF OPTIONS
 

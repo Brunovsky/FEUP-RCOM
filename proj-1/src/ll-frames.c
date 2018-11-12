@@ -1,5 +1,4 @@
 #include "ll-frames.h"
-#include "ll-errors.h"
 #include "debug.h"
 
 #include <stdlib.h>
@@ -11,7 +10,7 @@ bool isIframe(frame f, int parity) {
              f.c == FRAME_C_I(parity) &&
              f.data.s != NULL && f.data.len > 0;
 
-    if (b) ++counter.in.I;
+    if (b) ++counter.in.I[parity % 2];
 
     if (TRACE_LL_IS) printf("[LL] isIframe(%d) ? %d\n", parity % 2, (int)b);
     return b;
@@ -102,7 +101,7 @@ int writeIframe(int fd, string message, int parity) {
         .data = message
     };
 
-    ++counter.out.I;
+    ++counter.out.I[parity % 2];
 
     if (TRACE_LL_WRITE) {
         printf("[LL] writeIframe(%d) [flen=%lu]\n", parity % 2, f.data.len);

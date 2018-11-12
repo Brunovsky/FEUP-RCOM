@@ -13,4 +13,6 @@ bool was_alarmed();
 
 void test_alarm();
 
+void await_timeout();
+
 #endif // SIGNALS_H___
