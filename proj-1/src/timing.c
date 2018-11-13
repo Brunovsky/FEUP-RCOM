@@ -26,9 +26,9 @@ static void print_stats_compact(size_t i, size_t filesize) {
         "==STATS==  %9.2f Bits/s                       \n"
         "==STATS==  %9.2f Bytes/s                      \n"
         "==STATS==  %9.2f Packs/s                      \n"
-        "==STATS==  %6d Timeouts                       \n"
-        "==STATS==  %6d I | %6d RR | %6d REJ           \n"
-        "==STATS==  %6d Invalid | %6d BCC1 | %6d BCC2  \n"
+        "==STATS==   %6d Timeouts                      \n"
+        "==STATS==   %6d I | %d RR | %d REJ            \n"
+        "==STATS==   %6d Invalid | %d BCC1 | %d BCC2   \n"
         "==STATS==\n";
 
     double ms = times[i];
@@ -81,7 +81,7 @@ static void print_stats_receiver(size_t i, size_t filesize) {
         "==STATS==    I frame Size %7d bytes (average)        \n"
         "==STATS==    %6d Data packets (+2 total)             \n"
         "==STATS==  Efficiency:                               \n"
-        "==STATS==    Observed |  Max (b)  |  Max (B)         \n"
+        "==STATS==     Observed |  Max (b)  |  Max (B)        \n"
         "==STATS==    %9.2f | %9.2f | %9.2f Bits/s            \n"
         "==STATS==    %9.2f | %9.2f | %9.2f Bytes/s           \n"
         "==STATS==    %9.3f | %9.3f | %9.3f Packs/s           \n"
@@ -150,7 +150,7 @@ static void print_stats_transmitter(size_t i, size_t filesize) {
         "==STATS==    I frame Size %7d bytes (average)        \n"
         "==STATS==    %6d Data packets (+2 total)             \n"
         "==STATS==  Efficiency:                               \n"
-        "==STATS==   Observed | Maximum(b) | Maximum(B)       \n"
+        "==STATS==     Observed |  Max (b)  |  Max (B)        \n"
         "==STATS==    %9.2f | %9.2f | %9.2f Bits/s            \n"
         "==STATS==    %9.2f | %9.2f | %9.2f Bytes/s           \n"
         "==STATS==    %9.3f | %9.3f | %9.3f Packs/s           \n"

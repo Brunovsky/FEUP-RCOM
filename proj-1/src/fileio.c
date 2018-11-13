@@ -234,8 +234,11 @@ int receive_file(int fd) {
             free(end_filename);
             free_control_packet(cp);
             break;
-        case PRECEIVE_BAD_PACKET: default:
-            printf("[FILE] Error: Expected DATA/END packet, received BAD packet. Exiting\n");
+        case PRECEIVE_BAD_PACKET:
+            printf("[FILE] Error: Expected DATA/END packet, received BAD packet.\n");
+            if (EXIT_ON_BAD_PACKET) done = true;
+            break;
+        default:
             done = true;
             break;
         }

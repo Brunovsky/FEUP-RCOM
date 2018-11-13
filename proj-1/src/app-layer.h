@@ -5,9 +5,9 @@
 
 #include <stdbool.h>
 
-#define PCONTROL_DATA          0x01
-#define PCONTROL_START         0x02
-#define PCONTROL_END           0x03
+#define PCONTROL_DATA          0x41
+#define PCONTROL_START         0x42
+#define PCONTROL_END           0x43
 #define PCONTROL_BAD_PACKET    0x40
 
 #define PCONTROL_TYPE_FILESIZE 0x00

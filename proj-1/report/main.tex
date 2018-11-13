@@ -1,4 +1,4 @@
-\documentclass[11pt,a4paper,portrait,notitlepage]{article}
+\documentclass[11pt,a4paper,portrait,titlepage]{article}
 
 \usepackage{./styles/main}
 
@@ -6,13 +6,15 @@
 
 \newcommand*{\maintitle}{Ligação de Dados}
 \newcommand*{\subtitle}{Redes de Computadores}
-\newcommand*{\foottitle}{RCOM - 1º Trabalho Laboratorial}
+\newcommand*{\foottitle}{RCOM - Lab 1}
 
 \title{
 	\includegraphics[scale=0.20]{feuplogo.jpg}\\
 	{\Huge \maintitle{}}\\
 	{\large \subtitle{}}
 }
+
+\date{November 12, 2018}
 
 \author{
 	Bruno Carvalho\\\text{up201606517}
@@ -23,10 +25,11 @@
 }
 
 \begin{document}
+\begin{titlepage}
 \maketitle
-%\thispagestyle{empty}
 \tableofcontents
-%\clearpage
+\thispagestyle{empty}
+\end{titlepage}
 
 \subfile{contents/contents.tex}
 \clearpage

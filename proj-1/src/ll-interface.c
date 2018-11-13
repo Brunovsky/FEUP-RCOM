@@ -41,14 +41,11 @@ static int llopen_transmitter(int fd) {
             }
             // FALLTHROUGH
         case FRAME_READ_INVALID:
-            if (LLOPEN_ASSUME_UA_OK) {
-                if (TRACE_LL || TRACE_FILE) {
-                    printf("[LL] llopen (T) ASSUME UA OK\n");
-                }
-                return LL_OK;
+            if (TRACE_LL || TRACE_FILE) {
+                printf("[LL] llopen (T) ASSUME UA OK\n");
             }
-            ++answer_count, ++counter.invalid;
-            break;
+            ++counter.invalid;
+            return LL_OK;
         case FRAME_READ_TIMEOUT:
             ++time_count, ++counter.timeout;
             break;
@@ -233,12 +230,14 @@ answer:
                     // FALLTHROUGH
                 case FRAME_READ_INVALID: // 5.1
                     answered_disc = false;
+                    ++answer_count, ++counter.invalid;
                     goto answer;
                 case FRAME_READ_TIMEOUT:
                     if (answered_disc) {
                         if (TRACE_LL || TRACE_FILE) {
                             printf("[LL] llclose (R) READ TIMEOUT ASSUME OK\n");
                         }
+                        ++counter.timeout;
                         return LL_OK;
                     }
                     ++time_count, ++counter.timeout;
@@ -365,7 +364,7 @@ int llread(int fd, string* messagep) {
                 return LL_OK;
             } else if (isIframe(f, index + 1)) {
                 writeRRframe(fd, index);
-                ++answer_count, ++counter.invalid;
+                ++answer_count;
                 if (TRACE_LL) {
                     printf("[LL] llread: Expected frame %d, got frame %d\n",
                         index % 2, (index + 1) % 2);

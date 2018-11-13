@@ -55,6 +55,9 @@
 // Dump Options (options)
 #define DUMP_OPTIONS 0
 
+// Exit receive_file if a BAD packet is received
+#define EXIT_ON_BAD_PACKET 0
+
 typedef struct {
     size_t len, bcc1, bcc2;
 } read_count_t;
