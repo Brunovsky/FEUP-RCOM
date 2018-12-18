@@ -51,6 +51,16 @@ static void ftpuntil(const char* format, ...) {
 }
 
 static void fail(const char* format, ...) {
+    printf("ERROR:\n ");
+    va_list arglist;
+    va_start(arglist, format);
+    vfprintf(stderr, format, arglist);
+    printf("\n");
+    va_end(arglist);
+    exit(1);
+}
+
+static void libfail(const char* format, ...) {
     int err = errno;
     printf("FAIL:\n ");
     va_list arglist;

@@ -13,19 +13,19 @@
 #include <arpa/inet.h>
 
 /**
- * FTP Protocol Socket
+ * FTP Protocol Socket (User-Protocol Interpreter)
  */
 static FILE* protocolstream = NULL;
 static int protocolfd = 0;
 
 /**
- * FTP Passive Socket
+ * FTP Passive Socket (Data Transfer)
  */
 static FILE* passivestream = NULL;
 static int passivefd = 0;
 
 /**
- * Input FTP URL, parsed
+ * Input FTP URL
  */
 static url_t url;
 
@@ -36,7 +36,7 @@ static void close_passive_socket();
 static void free_url();
 
 /**
- * Send an FTP command to the protocol socket (just writes, really).
+ * Send an FTP command to the protocol socket.
  */
 static int send_ftp_command(const char* command) {
     ssize_t count = 0, s = 0;
@@ -46,7 +46,7 @@ static int send_ftp_command(const char* command) {
 
     do {
         count += s = send(protocolfd, command + count, len - count, 0);
-        if (s <= 0) fail("Failed to write anything to socket");
+        if (s <= 0) fail("Failed to write anything to protocol socket");
     } while (count < len);
 
     return 0;
@@ -54,58 +54,28 @@ static int send_ftp_command(const char* command) {
 
 /**
  * Read and discard reply lines from the FTP protocol socket stream until reading a
- * line that starts with an FTP code (weak check).
+ * line that starts with an FTP code not followed by a dash.
  */
 static int recv_ftp_reply(char* code, char** line) {
     char* reply = NULL;
-    size_t n = 0;
 
-    char first_char;
-    ssize_t read_count = 0;
+    ssize_t read_size = 0;
 
     do {
         free(reply);
         
         reply = NULL;
-        n = 0;
+        size_t n = 0;
         
-        read_count = getline(&reply, &n, protocolstream); // keeps \r\n
-        if (read_count < 1) fail("Failed to read reply from socket stream");
+        read_size = getline(&reply, &n, protocolstream); // keeps \r\n
+        if (read_size < 1) fail("Failed to read reply from protocol socket stream");
 
         ftpreply(reply);
-        first_char = reply[0];
-    } while ('1' > first_char || first_char > '5' || read_count < 5);
+    } while ('1' > reply[0] || reply[0] > '5' || read_size < 4 || reply[3] == '-');
 
     strncpy(code, reply, 3); code[3] = '\0';
-    if (line != NULL) {
-        *line = reply;
-    } else {
-        free(reply);
-    }
-    return 0;
-}
+    line != NULL ? *line = reply : free(reply);
 
-/**
- * Read and discard reply lines from the FTP protocol socket stream until receiving a
- * line that starts with an FTP code (weak check) which is not listed in excl.
- */
-static int recv_ftp_replies_until(char* code, char** line, char* excl) {
-    ftpuntil("-@%s", excl);
-
-    char codebuf[4] = {0};
-    char* linebuf = NULL;
-
-    do {
-        free(linebuf);
-        recv_ftp_reply(codebuf, &linebuf);
-    } while (strstr(excl, codebuf) != NULL);
-
-    strncpy(code, codebuf, 4);
-    if (line != NULL) {
-        *line = linebuf;
-    } else {
-        free(linebuf);
-    }
     return 0;
 }
 
@@ -129,14 +99,14 @@ static char* regexcap(char* source, regmatch_t match) {
 
 /**
  * 1. Parse program's input, the FTP URL
- * For the URL parsing we use a weak regular expression. It accepts all valid (ftp) URLs
+ * For URL parsing we use a weak regular expression. It accepts all valid (ftp) URLs
  * with non-empty filenames, although it also passes a whole bunch of invalid ones too.
- * It gets the job done quickly. Also, it does not accept a port after the host.
+ * It gets the job done quickly. Note: it does not accept a port after the host.
  */
 int parse_url(char* urlstr) {
     regex_t regex;
     // capturers:     1       23        4 5             6         78           9
-    //                 ftp ://[user    [:pass]       @] host     /path/to/     filename
+    //                 ftp ://[user     [:pass]      @] host     /path/  to/   filename
     regcomp(&regex, "^(ftp)://(([^:@/]+)(:([^:@/]+))?@)?([^:@/]+)/(([^:@/]+/)*)([^:@/]+)$",
         REG_EXTENDED | REG_ICASE | REG_NEWLINE);
 
@@ -160,23 +130,23 @@ int parse_url(char* urlstr) {
 
     atexit(free_url);
 
-    progress("1. Valid URL: ftp://%s/%s%s", url.hostname, url.pathname, url.filename);
+    progress("1. FTP URL: ftp://%s/%s%s", url.hostname, url.pathname, url.filename);
 
     // Pick default username
     if (url.username == NULL) {
         url.username = strdup("anonymous"); // *** DEFAULT USER
-        progress("Defaulting username to %s", url.username);
+        progress(" Defaulting username to %s", url.username);
     }
 
     // Pick default password
     if (url.password == NULL) {
         url.password = strdup("rcom-lab2"); // *** DEFAULT PASS
-        progress("Defaulting password to %s", url.password);
+        progress(" Defaulting password to %s", url.password);
     }
 
     // Extra: warning for the common test case where host is ftp.up.pt
     if (strcmp(url.username, "anonymous") && !strcmp(url.hostname, "ftp.up.pt")) {
-        printf("\n**** Warning **** ftp.up.pt operates only in anonymous mode.\n\n");
+        printf("\n **** Warning **** ftp.up.pt operates only in anonymous mode.\n\n");
     }
 
     progress(" url.protocol: %s", url.protocol);
@@ -191,7 +161,7 @@ int parse_url(char* urlstr) {
 }
 
 /**
- * 2. Resolve hostname from url to server's IPv4 IP address and setup protocol socket
+ * 2. Resolve hostname to server's IPv4 address and setup protocol socket
  */
 int ftp_open_protocol_socket() {
     char code[4];
@@ -204,7 +174,7 @@ int ftp_open_protocol_socket() {
 
     progress(" 2.1. Resolved hostname %s successfully", url.hostname);
     progress("  host->h_name: %s", host->h_name);
-    progress("  host->h_addrtype: %d [AF_INET=%d]", host->h_addrtype, AF_INET);
+    progress("  host->h_addrtype: %d [IPv4=%d]", host->h_addrtype, AF_INET);
 
     // 2.2. extract IPv4 address
     if (host->h_addrtype != AF_INET) fail("Expected IPv4 address");
@@ -212,7 +182,6 @@ int ftp_open_protocol_socket() {
     char* protocolip = inet_ntoa(*(struct in_addr*)host->h_addr);
 
     progress(" 2.2. Protocol IP Address: %s", protocolip);
-
     progress("      Establishing protocol connection with FTP server");
 
     // 2.3. socket()
@@ -237,9 +206,9 @@ int ftp_open_protocol_socket() {
 
     // 2.5. recv() 220 === Service ready for new user
     recv_ftp_reply(code, NULL);
-    if (strcmp(code, "220") != 0) unexpected("Expected message code 220");
+    if (strcmp(code, "220") != 0) unexpected("Expected reply 220, got %s", code);
 
-    progress("      Successfully established protocol socket connection");
+    progress(" 2.5. Successfully established protocol socket connection");
 
     return 0;
 }
@@ -255,34 +224,30 @@ int ftp_login() {
     progress("3. Send USER and PASS login commands to FTP server");
 
     // 3.1. send() USER username
+    //      recv() 331 === User name okay, send password
     char* user_command = malloc((10 + strlen(url.username)) * sizeof(char));
     sprintf(user_command, "USER %s\r\n", url.username);
 
     send_ftp_command(user_command);
     free(user_command);
 
-    progress(" 3.1. Login: Sent command USER %s", url.username);
-
-    // 3.2. recv() 331 === User name okay, need password
-    recv_ftp_replies_until(code, NULL, "220");
+    recv_ftp_reply(code, NULL);
     if (strcmp(code, "331") != 0) unexpected("Expected reply 331, got %s", code);
 
-    progress(" 3.2. Confirmed, server requesting password");
+    progress(" 3.1. Server confirmed user %s", url.username);
 
-    // 3.3. send() PASS password
+    // 3.2. send() PASS password
+    //      recv() 230 === Login successful, proceed
     char* pass_command = malloc((10 + strlen(url.password)) * sizeof(char));
     sprintf(pass_command, "PASS %s\r\n", url.password);
 
     send_ftp_command(pass_command);
     free(pass_command);
 
-    progress(" 3.3. Login: Sent command PASS %s", url.password);
-
-    // 3.4. recv() 230 === User logged in, proceed
-    recv_ftp_replies_until(code, NULL, "331");
+    recv_ftp_reply(code, NULL);
     if (strcmp(code, "230") != 0) unexpected("Expected reply 230, got %s", code);
 
-    progress(" 3.4. FTP Server acknowledges login");
+    progress(" 3.2. Server acknowledges login, proceeding");
 
     return 0;
 }
@@ -296,11 +261,9 @@ int ftp_open_passive_socket() {
     progress("4. Establish passive connection with FTP server");
 
     // 4.1. send() PASV
-    send_ftp_command("PASV\r\n");
+    //      recv() 227 Entering Passive Mode (IP3.IP2.IP1.IP0,Port1,Port0)
+    send_ftp_command("PASV \r\n");
 
-    progress(" 4.1. Sent command PASV");
-
-    // 4.2. recv() 227 Entering Passive Mode (IP3,IP2,IP1,IP0,Port1,Port0)
     char* line;
     recv_ftp_reply(code, &line);
     if (strcmp(code, "227") != 0) unexpected("Expected reply 227, got %d", code);
@@ -318,9 +281,9 @@ int ftp_open_passive_socket() {
     char* substr = regexcap(line, pmatch[1]);
     free(line);
 
-    progress(" 4.2. Entered Passive Mode: (%s)", substr);
+    progress(" 4.1. Entered Passive Mode: (%s)", substr);
 
-    // 4.3. extract passive ip from response line
+    // 4.2. extract passive ip from response line
     int ip3, ip2, ip1, ip0, port1, port0;
     sscanf(substr, "%d, %d, %d, %d, %d, %d", &ip3, &ip2, &ip1, &ip0, &port1, &port0);
     free(substr);
@@ -329,18 +292,18 @@ int ftp_open_passive_socket() {
     sprintf(passiveip, "%d.%d.%d.%d", ip3, ip2, ip1, ip0);
     int port = port1 * 256 + port0;
 
-    progress(" 4.3. Passive IP Address: %s:%d", passiveip, port);
+    progress(" 4.2. Passive IP Address: %s:%d", passiveip, port);
 
-    // 4.4. socket()
+    // 4.3. socket()
     passivefd = socket(AF_INET, SOCK_STREAM, 0);
     if (passivefd == -1) fail("Failed to open socket for passive connection");
 
     passivestream = fdopen(passivefd, "r+");
     atexit(close_passive_socket);
 
-    progress(" 4.4. Opened passive socket for FTP's passive connection");
+    progress(" 4.3. Opened passive socket for FTP's passive connection");
 
-    // 4.5. connect()
+    // 4.4. connect()
     struct sockaddr_in in_addr = {0};
     in_addr.sin_family = AF_INET; // IPv4 address
     in_addr.sin_port = htons(port); // host bytes -> network bytes
@@ -349,8 +312,8 @@ int ftp_open_passive_socket() {
     s = connect(passivefd, (struct sockaddr*)&in_addr, sizeof(in_addr));
     if (s != 0) fail("Failed to connect() passive socket");
 
-    progress(" 4.5. Connected passive socket to %s:%d", passiveip, port);
-    progress("      Successfully established passive socket connection");
+    progress(" 4.4. Connected passive socket to %s:%d", passiveip, port);
+    progress(" 4.5. Successfully established passive socket connection");
 
     return 0;
 }
@@ -362,9 +325,10 @@ int ftp_open_passive_socket() {
 int send_retrieve() {
     char code[4];
 
-    progress("5. Send Retrieve command");
+    progress("5. Retrieve file from Server (retrieve command)");
 
-    // 5.1. send() RETR filepath/filename
+    // 5.1. send() RETR filepath
+    //      recv() 150 File status okay, opening data transfer now
     size_t len = strlen(url.pathname) + strlen(url.filename);
     char* retr_command = malloc((10 + len) * sizeof(char));
     sprintf(retr_command, "RETR %s%s\r\n", url.pathname, url.filename);
@@ -372,13 +336,10 @@ int send_retrieve() {
     send_ftp_command(retr_command);
     free(retr_command);
 
-    progress(" 5.1. Retrieve: Sent command RETR %s%s", url.pathname, url.filename);
-
-    // 5.2. recv() 150 File status okay; about to open data connection
     recv_ftp_reply(code, NULL);
     if (strcmp(code, "150") != 0) unexpected("Expected reply 150, got %s", code);
 
-    progress(" 5.2. Confirmed, server retrieved %s%s", url.pathname, url.filename);
+    progress(" 5.1. Confirmed, server retrieved %s%s", url.pathname, url.filename);
 
     return 0;
 }
@@ -401,16 +362,16 @@ int download_file() {
 
     // 6.2. Canonical reading loop on passivefd, read the whole thing
     char buffer[1024]; // TCP caps at 1500B/p practically
-    ssize_t read_count = 0;
+    ssize_t read_size = 0;
 
     progress("      Reading...");
 
-    while ((read_count = read(passivefd, buffer, sizeof(buffer))) > 0) {
-        size_t write_count = fwrite(buffer, read_count, 1, out);
-        if (write_count != 1) fail("Failed to write to output file");
+    while ((read_size = read(passivefd, buffer, sizeof(buffer))) > 0) {
+        size_t write_size = fwrite(buffer, read_size, 1, out);
+        if (write_size != 1) fail("Failed to write to output file");
     }
 
-    if (read_count < 0) fail("Failed to read file on passive socket");
+    if (read_size < 0) fail("Failed to read file on passive socket");
 
     fclose(out);
 
@@ -427,7 +388,7 @@ int download_file() {
  * 7. Close the connection to the server.
  */
 static void close_protocol_socket() {
-    send_ftp_command("QUIT\r\n");
+    send_ftp_command("QUIT \r\n");
     fclose(protocolstream);
 }
 
