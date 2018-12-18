@@ -115,7 +115,7 @@ int parse_url(char* urlstr) {
     // Regex-parse the input url
     int s = regexec(&regex, urlstr, 10, pmatch, 0);
     regfree(&regex);
-    if (s != 0) fail("Invalid URL (failed quick regex parse)");
+    if (s != 0) fail("Invalid URL {no port, must have nonempty filename}");
 
     // Take captures
     url = (url_t){
@@ -140,7 +140,7 @@ int parse_url(char* urlstr) {
 
     // Pick default password
     if (url.password == NULL) {
-        url.password = strdup("rcom-lab2"); // *** DEFAULT PASS
+        url.password = strdup("upstudent-rcom"); // *** DEFAULT PASS
         progress(" Defaulting password to %s", url.password);
     }
 
