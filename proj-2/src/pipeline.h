@@ -10,18 +10,19 @@ typedef struct {
     char* hostname;
     char* pathname;
     char* filename;
+    int port;
 } url_t;
 
-url_t parse_url(char* urlstr);
+int parse_url();
 
-int ftp_open_protocol_socket(const char* hostname);
+int ftp_open_protocol_socket();
 
-int ftp_login(const char* username, const char* password);
+int ftp_login();
 
 int ftp_open_passive_socket();
 
-int send_retrieve(const char* pathname, const char* filename);
+int send_retrieve();
 
-int download_file(const char* filename);
+int download_file();
 
 #endif // SOCKETIO_H___
