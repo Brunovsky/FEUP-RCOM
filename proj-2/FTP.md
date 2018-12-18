@@ -113,7 +113,7 @@
     --> 221 Service closing control connection.
             Logged out if appropriate.
         225 Data connection open; no transfer in progress.
-        226 Closing data connection.
+    --> 226 Closing data connection.
             Requested file action successful (for example, file
             transfer or file abort).
     --> 227 Entering Passive Mode (h1,h2,h3,h4,p1,p2).

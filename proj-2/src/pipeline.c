@@ -135,7 +135,7 @@ static char* regexcap(char* source, regmatch_t match) {
  */
 int parse_url(char* urlstr) {
     regex_t regex;
-    // captures:      1       23        4 5             6         78           9
+    // capturers:     1       23        4 5             6         78           9
     //                 ftp ://[user    [:pass]       @] host     /path/to/     filename
     regcomp(&regex, "^(ftp)://(([^:@/]+)(:([^:@/]+))?@)?([^:@/]+)/(([^:@/]+/)*)([^:@/]+)$",
         REG_EXTENDED | REG_ICASE | REG_NEWLINE);
@@ -416,8 +416,8 @@ int download_file() {
 
     progress(" 6.2. Done.");
 
+    // 6.3. recv() 226 === Closing data connection, transfer complete
     recv_ftp_reply(code, NULL);
-
     if (strcmp(code, "226") != 0) unexpected("Expected reply 226, got %d", code);
 
     return 0;

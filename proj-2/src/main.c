@@ -39,5 +39,5 @@ int main(int argc, char** argv) {
     /**
      * 7. Close connection to server
      */
-    return 0;
+    exit(EXIT_SUCCESS);
 }
