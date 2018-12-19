@@ -13,10 +13,10 @@
 #include <arpa/inet.h>
 
 /**
- * FTP Protocol Socket (User-Protocol Interpreter)
+ * FTP Control Socket (User-Protocol Interpreter)
  */
-static FILE* protocolstream = NULL;
-static int protocolfd = 0;
+static FILE* controlstream = NULL;
+static int controlfd = 0;
 
 /**
  * FTP Passive Socket (Data Transfer)
@@ -29,14 +29,14 @@ static int passivefd = 0;
  */
 static url_t url;
 
-static void close_protocol_socket();
+static void close_control_socket();
 
 static void close_passive_socket();
 
 static void free_url();
 
 /**
- * Send an FTP command to the protocol socket.
+ * Send an FTP command to the control socket.
  */
 static int send_ftp_command(const char* command) {
     ssize_t count = 0, s = 0;
@@ -45,15 +45,15 @@ static int send_ftp_command(const char* command) {
     ftpcommand(command);
 
     do {
-        count += s = send(protocolfd, command + count, len - count, 0);
-        if (s <= 0) fail("Failed to write anything to protocol socket");
+        count += s = send(controlfd, command + count, len - count, 0);
+        if (s <= 0) fail("Failed to write anything to control socket");
     } while (count < len);
 
     return 0;
 }
 
 /**
- * Read and discard reply lines from the FTP protocol socket stream until reading a
+ * Read and discard reply lines from the FTP control socket stream until reading a
  * line that starts with an FTP code not followed by a dash.
  */
 static int recv_ftp_reply(char* code, char** line) {
@@ -67,8 +67,8 @@ static int recv_ftp_reply(char* code, char** line) {
         reply = NULL;
         size_t n = 0;
         
-        read_size = getline(&reply, &n, protocolstream); // keeps \r\n
-        if (read_size < 1) fail("Failed to read reply from protocol socket stream");
+        read_size = getline(&reply, &n, controlstream); // keeps \r\n
+        if (read_size < 1) fail("Failed to read reply from control socket stream");
 
         ftpreply(reply);
     } while ('1' > reply[0] || reply[0] > '5' || read_size < 4 || reply[3] == '-');
@@ -105,9 +105,9 @@ static char* regexcap(char* source, regmatch_t match) {
  */
 int parse_url(char* urlstr) {
     regex_t regex;
-    // capturers:     1       23        4 5             6         78           9
-    //                 ftp ://[user     [:pass]      @] host     /path/  to/   filename
-    regcomp(&regex, "^(ftp)://(([^:@/]+)(:([^:@/]+))?@)?([^:@/]+)/(([^:@/]+/)*)([^:@/]+)$",
+    // capturers:     1       23         4 5              6          78            9
+    //                 ftp ://[user      [:pass]       @] host      /path/  to/    filename
+    regcomp(&regex, "^(ftp)://(([^:@/ ]+)(:([^:@/ ]+))?@)?([^:@/ ]+)/(([^:@/ ]+/)*)([^:@/ ]+)$",
         REG_EXTENDED | REG_ICASE | REG_NEWLINE);
 
     regmatch_t pmatch[10];
@@ -130,7 +130,7 @@ int parse_url(char* urlstr) {
 
     atexit(free_url);
 
-    progress("1. FTP URL: ftp://%s/%s%s", url.hostname, url.pathname, url.filename);
+    progress("1. FTP URL: "CGREEN"ftp://%s/%s%s"CEND, url.hostname, url.pathname, url.filename);
 
     // Pick default username
     if (url.username == NULL) {
@@ -161,12 +161,12 @@ int parse_url(char* urlstr) {
 }
 
 /**
- * 2. Resolve hostname to server's IPv4 address and setup protocol socket
+ * 2. Resolve hostname to server's IPv4 address and setup control socket
  */
-int ftp_open_protocol_socket() {
+int ftp_open_control_socket() {
     char code[4];
 
-    progress("2. Resolve hostname %s and setup protocol socket", url.hostname);
+    progress("2. Resolve hostname %s and setup control socket", url.hostname);
 
     // 2.1. resolve
     struct hostent* host = gethostbyname(url.hostname);
@@ -182,16 +182,16 @@ int ftp_open_protocol_socket() {
     char* protocolip = inet_ntoa(*(struct in_addr*)host->h_addr);
 
     progress(" 2.2. Protocol IP Address: %s", protocolip);
-    progress("      Establishing protocol connection with FTP server");
+    progress("      Establishing control connection with FTP server");
 
     // 2.3. socket()
-    protocolfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (protocolfd == -1) fail("Failed to open socket for protocol connection");
+    controlfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (controlfd == -1) fail("Failed to open socket for control connection");
 
-    protocolstream = fdopen(protocolfd, "r");
-    atexit(close_protocol_socket);
+    controlstream = fdopen(controlfd, "r");
+    atexit(close_control_socket);
 
-    progress(" 2.3. Opened protocol socket for FTP's protocol connection");
+    progress(" 2.3. Opened control socket for FTP's protocol connection");
 
     // 2.4. connect()
     struct sockaddr_in in_addr = {0};
@@ -199,24 +199,23 @@ int ftp_open_protocol_socket() {
     in_addr.sin_port = htons(url.port); // host byte order -> network byte order
     in_addr.sin_addr.s_addr = inet_addr(protocolip); // to network format
 
-    int s = connect(protocolfd, (struct sockaddr*)&in_addr, sizeof(in_addr));
-    if (s != 0) fail("Failed to connect() protocol socket");
+    int s = connect(controlfd, (struct sockaddr*)&in_addr, sizeof(in_addr));
+    if (s != 0) fail("Failed to connect() control socket");
 
-    progress(" 2.4. Connected protocol socket to %s:%d", protocolip, 21);
+    progress(" 2.4. Connected control socket to %s:%d", protocolip, 21);
 
     // 2.5. recv() 220 === Service ready for new user
     recv_ftp_reply(code, NULL);
     if (strcmp(code, "220") != 0) unexpected("Expected reply 220, got %s", code);
 
-    progress(" 2.5. Successfully established protocol socket connection");
+    progress(" 2.5. Successfully established control socket connection");
 
     return 0;
 }
 
 /**
- * 3. Login in the protocol.
+ * 3. Login user.
  * Simply a USER command followed by a PASS command.
- * Must be careful to avoid multiple 220 from the previous connect()
  */
 int ftp_login() {
     char code[4];
@@ -387,9 +386,9 @@ int download_file() {
 /**
  * 7. Close the connection to the server.
  */
-static void close_protocol_socket() {
+static void close_control_socket() {
     send_ftp_command("QUIT \r\n");
-    fclose(protocolstream);
+    fclose(controlstream);
 }
 
 static void close_passive_socket() {

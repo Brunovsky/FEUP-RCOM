@@ -1,5 +1,5 @@
-#ifndef SOCKETIO_H___
-#define SOCKETIO_H___
+#ifndef PIPELINE_H___
+#define PIPELINE_H___
 
 #include "debug.h"
 
@@ -15,7 +15,7 @@ typedef struct {
 
 int parse_url();
 
-int ftp_open_protocol_socket();
+int ftp_open_control_socket();
 
 int ftp_login();
 
@@ -25,4 +25,4 @@ int send_retrieve();
 
 int download_file();
 
-#endif // SOCKETIO_H___
+#endif // PIPELINE_H___

@@ -6,81 +6,43 @@
 #include <stdlib.h>
 #include <errno.h>
 
+/**
+ * Linux terminal colors
+ */
+#define CRED "\e[1;31m"
+
+#define CGREEN "\e[1;32m"
+
+#define CYELLOW "\e[1;33m"
+
+#define CBLUE "\e[1;34m"
+
+#define CPURP "\e[1;35m"
+
+#define CEND "\e[m"
+
+/**
+ * Print what?
+ */
 #define PRINT_PROGRESS 1
 
 #define PRINT_FTP_COMMAND 1
 
-#define PRINT_FTP_ECHO 1
-
-#define PRINT_FTP_UNTIL 1
+#define PRINT_FTP_REPLY 1
 
 /**
  * Logging functions
  */
+void progress(const char* format, ...);
 
-static void progress(const char* format, ...) {
-    va_list arglist;
-    va_start(arglist, format);
-#if PRINT_PROGRESS
-    vprintf(format, arglist);
-    printf("\n");
-#endif
-    va_end(arglist);
-}
+void ftpcommand(const char* line);
 
-static void ftpcommand(const char* line) {
-#if PRINT_FTP_COMMAND
-    printf("    [COMMD] %s", line);
-#endif
-}
+void ftpreply(const char* line);
 
-static void ftpreply(const char* line) {
-#if PRINT_FTP_ECHO
-    printf("    [REPLY] %s", line);
-#endif
-}
+void fail(const char* format, ...);
 
-static void ftpuntil(const char* format, ...) {
-    va_list arglist;
-    va_start(arglist, format);
-#if PRINT_DEBUG_SOCKETIO
-    vprintf(format, arglist);
-    printf("\n");
-#endif
-    va_end(arglist);
-}
+void libfail(const char* format, ...);
 
-static void fail(const char* format, ...) {
-    printf("ERROR:\n ");
-    va_list arglist;
-    va_start(arglist, format);
-    vfprintf(stderr, format, arglist);
-    printf("\n");
-    va_end(arglist);
-    exit(1);
-}
-
-static void libfail(const char* format, ...) {
-    int err = errno;
-    printf("FAIL:\n ");
-    va_list arglist;
-    va_start(arglist, format);
-    vfprintf(stderr, format, arglist);
-    printf("\n");
-    va_end(arglist);
-    errno = err;
-    perror("Library error (errno)");
-    exit(1);
-}
-
-static void unexpected(const char* format, ...) {
-    printf("UNEXPECTED:\n ");
-    va_list arglist;
-    va_start(arglist, format);
-    vfprintf(stderr, format, arglist);
-    printf("\n");
-    va_end(arglist);
-    exit(1);
-}
+void unexpected(const char* format, ...);
 
 #endif // DEBUG_H___

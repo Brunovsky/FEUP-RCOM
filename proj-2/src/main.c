@@ -14,7 +14,7 @@ int main(int argc, char** argv) {
     /**
      * 2. Resolve hostname to server's IPv4 IP address and open protocol socket
      */
-    ftp_open_protocol_socket();
+    ftp_open_control_socket();
 
     /**
      * 3. Login to the server (user + password)
