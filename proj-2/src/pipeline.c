@@ -46,7 +46,7 @@ static int send_ftp_command(const char* command) {
 
     do {
         count += s = send(controlfd, command + count, len - count, 0);
-        if (s <= 0) fail("Failed to write anything to control socket");
+        if (s <= 0) libfail("Failed to write anything to control socket");
     } while (count < len);
 
     return 0;
@@ -68,7 +68,7 @@ static int recv_ftp_reply(char* code, char** line) {
         size_t n = 0;
         
         read_size = getline(&reply, &n, controlstream); // keeps \r\n
-        if (read_size < 1) fail("Failed to read reply from control socket stream");
+        if (read_size < 1) libfail("Failed to read reply from control socket stream");
 
         ftpreply(reply);
     } while ('1' > reply[0] || reply[0] > '5' || read_size < 4 || reply[3] == '-');
@@ -170,7 +170,7 @@ int ftp_open_control_socket() {
 
     // 2.1. resolve
     struct hostent* host = gethostbyname(url.hostname);
-    if (host == NULL) fail("Could not resolve hostname %s", url.hostname);
+    if (host == NULL) libfail("Could not resolve hostname %s", url.hostname);
 
     progress(" 2.1. Resolved hostname %s successfully", url.hostname);
     progress("  host->h_name: %s", host->h_name);
@@ -186,7 +186,7 @@ int ftp_open_control_socket() {
 
     // 2.3. socket()
     controlfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (controlfd == -1) fail("Failed to open socket for control connection");
+    if (controlfd == -1) libfail("Failed to open socket for control connection");
 
     controlstream = fdopen(controlfd, "r");
     atexit(close_control_socket);
@@ -200,7 +200,7 @@ int ftp_open_control_socket() {
     in_addr.sin_addr.s_addr = inet_addr(protocolip); // to network format
 
     int s = connect(controlfd, (struct sockaddr*)&in_addr, sizeof(in_addr));
-    if (s != 0) fail("Failed to connect() control socket");
+    if (s != 0) libfail("Failed to connect() control socket");
 
     progress(" 2.4. Connected control socket to %s:%d", protocolip, 21);
 
@@ -295,7 +295,7 @@ int ftp_open_passive_socket() {
 
     // 4.3. socket()
     passivefd = socket(AF_INET, SOCK_STREAM, 0);
-    if (passivefd == -1) fail("Failed to open socket for passive connection");
+    if (passivefd == -1) libfail("Failed to open socket for passive connection");
 
     passivestream = fdopen(passivefd, "r+");
     atexit(close_passive_socket);
@@ -309,7 +309,7 @@ int ftp_open_passive_socket() {
     in_addr.sin_addr.s_addr = inet_addr(passiveip); // to network format
 
     s = connect(passivefd, (struct sockaddr*)&in_addr, sizeof(in_addr));
-    if (s != 0) fail("Failed to connect() passive socket");
+    if (s != 0) libfail("Failed to connect() passive socket");
 
     progress(" 4.4. Connected passive socket to %s:%d", passiveip, port);
     progress(" 4.5. Successfully established passive socket connection");
@@ -355,7 +355,7 @@ int download_file() {
 
     // 6.1. Open output file in current directory
     FILE* out = fopen(url.filename, "w"); // streams are love, streams are life
-    if (out == NULL) fail("Failed to open output file in current directory");
+    if (out == NULL) libfail("Failed to open output file in current directory");
 
     progress(" 6.1. Opened output file successfully");
 
@@ -367,10 +367,10 @@ int download_file() {
 
     while ((read_size = read(passivefd, buffer, sizeof(buffer))) > 0) {
         size_t write_size = fwrite(buffer, read_size, 1, out);
-        if (write_size != 1) fail("Failed to write to output file");
+        if (write_size != 1) libfail("Failed to write to output file");
     }
 
-    if (read_size < 0) fail("Failed to read file on passive socket");
+    if (read_size < 0) libfail("Failed to read file on passive socket");
 
     fclose(out);
 
