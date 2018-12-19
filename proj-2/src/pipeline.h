@@ -1,8 +1,6 @@
 #ifndef PIPELINE_H___
 #define PIPELINE_H___
 
-#include "debug.h"
-
 typedef struct {
     char* protocol;
     char* username;
