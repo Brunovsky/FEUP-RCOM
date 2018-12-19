@@ -151,3 +151,15 @@
             dataset).
         553 Requested action not taken.
             File name not allowed.
+
+### Notes
+
+If the Server's reply consists of multiple lines, the first will start with
+
+    COD-...
+
+that is, the answer code and a *dash* (*minus*), followed by user readable text; and then it will end with
+
+    COD ...
+
+that is, the same answer code and a *space*. So, if we don't care about the user readable text, the canonical FTP reading loop discards every line *not* like the last one.

@@ -8,8 +8,10 @@ Just run
 
 and try downloading, e.g.
 
-    download ftp://bruno:pass@ftp.up.pt/debian/README
+    ./download ftp://anonymous@ftp.up.pt/debian/README
+    ./download ftp://anonymous:ayylmao@ftp.up.pt/debian/README
+    ./download ftp://ftp.up.pt/debian/README
 
-Username defaults to *feup* and password defaults to *upstudent*.
+Username defaults to *anonymous* and password defaults to *upstudent-rcom*.
 
-You can change -- pre-compilation -- the output in **debug.h**, like project 1.
+You can control the output in **debug.h**, like project 1.
