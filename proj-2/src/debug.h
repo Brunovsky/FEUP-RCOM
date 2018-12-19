@@ -24,7 +24,7 @@
 /**
  * Print what?
  */
-#define PRINT_PROGRESS 1
+#define PRINT_PROGRESS 0
 
 #define PRINT_FTP_COMMAND 1
 
