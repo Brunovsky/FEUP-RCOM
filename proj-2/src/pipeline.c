@@ -42,7 +42,7 @@ static int send_ftp_command(const char* command) {
     ssize_t count = 0, s = 0;
     ssize_t len = strlen(command);
 
-    ftpcommand(command);
+    logftpcommand(command);
 
     do {
         count += s = send(controlfd, command + count, len - count, 0);
@@ -70,7 +70,7 @@ static int recv_ftp_reply(char* code, char** line) {
         read_size = getline(&reply, &n, controlstream); // keeps \r\n
         if (read_size < 1) libfail("Failed to read reply from control socket stream");
 
-        ftpreply(reply);
+        logftpreply(reply);
     } while ('1' > reply[0] || reply[0] > '5' || read_size < 4 || reply[3] == '-');
 
     strncpy(code, reply, 3); code[3] = '\0';
@@ -83,7 +83,7 @@ static int recv_ftp_reply(char* code, char** line) {
  * Extract substring matched by a capture group from the source string,
  * returning NULL if the capture group didn't match.
  */
-static char* regexcap(char* source, regmatch_t match) {
+static char* regexcap(const char* source, regmatch_t match) {
     ssize_t start = match.rm_so;
     ssize_t end = match.rm_eo;
     if (start == -1) return NULL;
@@ -103,7 +103,7 @@ static char* regexcap(char* source, regmatch_t match) {
  * with non-empty filenames, although it also passes a whole bunch of invalid ones too.
  * It gets the job done quickly. Note: it does not accept a port after the host.
  */
-int parse_url(char* urlstr) {
+int parse_url(const char* urlstr) {
     regex_t regex;
     // capturers:     1       23         4 5              6          78            9
     //                 ftp ://[user      [:pass]       @] host      /path/  to/    filename
@@ -146,7 +146,7 @@ int parse_url(char* urlstr) {
 
     // Extra: warning for the common test case where host is ftp.up.pt
     if (strcmp(url.username, "anonymous") && !strcmp(url.hostname, "ftp.up.pt")) {
-        printf("\n **** Warning **** ftp.up.pt operates only in anonymous mode.\n\n");
+        printf(CYELLOW"\n Warning: ftp.up.pt operates only in anonymous mode.\n\n"CEND);
     }
 
     progress(" url.protocol: %s", url.protocol);
@@ -374,7 +374,7 @@ int download_file() {
 
     fclose(out);
 
-    progress(" 6.2. Done.");
+    progress(" 6.2. "CGREEN"Done."CEND);
 
     // 6.3. recv() 226 === Closing data connection, transfer complete
     recv_ftp_reply(code, NULL);

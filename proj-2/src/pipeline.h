@@ -13,7 +13,7 @@ typedef struct {
     int port;
 } url_t;
 
-int parse_url();
+int parse_url(const char* urlstr);
 
 int ftp_open_control_socket();
 

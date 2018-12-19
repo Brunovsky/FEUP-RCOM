@@ -10,13 +10,13 @@ void progress(const char* format, ...) {
     va_end(arglist);
 }
 
-void ftpcommand(const char* line) {
+void logftpcommand(const char* line) {
 #if PRINT_FTP_COMMAND
     printf(CBLUE"    [COMMD] %s"CEND, line);
 #endif
 }
 
-void ftpreply(const char* line) {
+void logftpreply(const char* line) {
 #if PRINT_FTP_REPLY
     printf(CPURP"    [REPLY] %s"CEND, line);
 #endif
@@ -29,7 +29,7 @@ void fail(const char* format, ...) {
     vfprintf(stderr, format, arglist);
     va_end(arglist);
     printf("\n"CEND);
-    exit(1);
+    exit(EXIT_FAILURE);
 }
 
 void libfail(const char* format, ...) {
@@ -43,7 +43,7 @@ void libfail(const char* format, ...) {
     errno = err;
     perror("Library error (errno)");
     printf(CEND);
-    exit(1);
+    exit(EXIT_FAILURE);
 }
 
 void unexpected(const char* format, ...) {
@@ -53,5 +53,5 @@ void unexpected(const char* format, ...) {
     vfprintf(stderr, format, arglist);
     va_end(arglist);
     printf("\n"CEND);
-    exit(1);
+    exit(EXIT_FAILURE);
 }

@@ -35,9 +35,9 @@
  */
 void progress(const char* format, ...);
 
-void ftpcommand(const char* line);
+void logftpcommand(const char* line);
 
-void ftpreply(const char* line);
+void logftpreply(const char* line);
 
 void fail(const char* format, ...);
 
