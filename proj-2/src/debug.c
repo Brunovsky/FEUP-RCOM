@@ -1,5 +1,9 @@
 #include "debug.h"
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
+
 void progress(const char* format, ...) {
     va_list arglist;
     va_start(arglist, format);
@@ -23,7 +27,7 @@ void logftpreply(const char* line) {
 }
 
 void fail(const char* format, ...) {
-    printf(CRED"ERROR:\n ");
+    printf(CRED"FAIL: ");
     va_list arglist;
     va_start(arglist, format);
     vfprintf(stderr, format, arglist);
@@ -34,7 +38,7 @@ void fail(const char* format, ...) {
 
 void libfail(const char* format, ...) {
     int err = errno;
-    printf(CRED"FAIL:\n ");
+    printf(CRED"ERROR: ");
     va_list arglist;
     va_start(arglist, format);
     vfprintf(stderr, format, arglist);
@@ -47,7 +51,7 @@ void libfail(const char* format, ...) {
 }
 
 void unexpected(const char* format, ...) {
-    printf(CRED"UNEXPECTED SERVER RESPONSE:\n ");
+    printf(CRED"UNEXPECTED SERVER RESPONSE: ");
     va_list arglist;
     va_start(arglist, format);
     vfprintf(stderr, format, arglist);

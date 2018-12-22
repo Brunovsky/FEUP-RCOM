@@ -105,9 +105,9 @@ static char* regexcap(const char* source, regmatch_t match) {
  */
 int parse_url(const char* urlstr) {
     regex_t regex;
-    // capturers:     1       23         4 5              6          78            9
-    //                 ftp ://[user      [:pass]       @] host      /path/  to/    filename
-    regcomp(&regex, "^(ftp)://(([^:@/ ]+)(:([^:@/ ]+))?@)?([^:@/ ]+)/(([^:@/ ]+/)*)([^:@/ ]+)$",
+    // capturers:     1       23         4 5              6          78          9
+    //                 ftp ://[user      [:pass]       @] host      /path/ to/   filename
+    regcomp(&regex, "^(ftp)://(([^:@/ ]+)(:([^:@/ ]+))?@)?([^:@/ ]+)/(([^/ ]+/)*)([^/ ]+)$",
         REG_EXTENDED | REG_ICASE | REG_NEWLINE);
 
     regmatch_t pmatch[10];
