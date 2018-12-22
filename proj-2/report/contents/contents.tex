@@ -83,8 +83,10 @@
 %   # ifconfig eth0 up
 %   # ifconfig eth0 172.16.31.1/24
 % >1:
+% sw:
 %   create vlan 30 and vlan 31
-%   add ports Fa0/1 and Fa0/4 to vlan 30 and port Fa0/2 to vlan 31.
+%   add ports Fa0/1 and Fa0/4 to vlan 30
+%   add port Fa0/2 to vlan 31.
 % >2:
 %   two broadcast domains (networks), 172.16.30.0/24 for vlan 30,
 %   and 172.16.31.0/24 for vlan 31.
@@ -104,6 +106,8 @@
 %   # echo 0 > /proc/sys/net/ipv4/icmp_echo_ignore_broadcasts
 % tux42:
 %   # route add -net 172.16.30.0/24 gw 172.16.31.253
+% sw:
+%   add port Fa0/7 to vlan 31
 % >1:
 %   Destination    Gateway        Mask           Interface
 %   -- routes in tux31:
@@ -177,10 +181,71 @@
 %     destination MAC address is that of tux34@eth0. From tux34@eth2 to tux32@eth0
 %     source MAC address is that of tux34@eth2 and destination MAC address is that
 %     of tux32@eth0.
-%     For ECHO_REPLY it's the reverse
+%     For ECHO_REPLY it's the reverse.
 
 \subsection{Exp 4: Configure a Commercial Router and Implement NAT}
 \label{exp:4}
+
+% cables:
+%   $ tux31@eth0 -- sw Fa0/1
+%   $ tux34@eth0 -- sw Fa0/4
+%   $ tux34@eth1 -- sw Fa0/7
+%   $ tux32@eth0 -- sw Fa0/2
+%   $ rt Giga0/1 -- sw Fa0/9
+%   $ rt Giga0/0 -- Lab1 (172.16.1.254)
+% tux44:
+%   # route add default gw 172.16.31.254
+% tux42:
+%   # route add default gw 172.16.31.254
+% sw:
+%   add port Fa0/9 to vlan 31
+% >1:
+%   ip route DestinationIP Mask GatewayIP [Interface, ...]
+% >2:
+%   tux31 pings 172.16.30.254 at tux34:
+%     172.16.30.1(tux31)--172.16.30.254(tux34)
+%   tux31 pings 172.16.31.253 at tux34:
+%     172.16.30.1(tux31)--172.16.30.254(tux34)
+%   tux31 pings 172.16.31.1 at tux32:
+%     172.16.30.1(tux31)--172.16.30.254(tux34)--172.16.31.1(tux32)
+%   tux31 pings 172.16.31.254 at router:
+%     172.16.30.1(tux31)--172.16.30.254(tux34)--172.16.31.254(rt)
+%   tux31 pings 172.16.1.39 at router:
+%     172.16.30.1(tux31)--172.16.30.254(tux34)--172.16.31.254(rt)
+%   tux31 pings 172.16.1.254 (with NAT implemented in the router):
+%     172.16.30.1(tux31)--172.16.30.254(tux34)--172.16.31.254(rt)--172.16.1.254(lab)
+%   Replies follow the reverse path.
+%
+%   When tux32 does not accept redirects and does not have a shortcut:
+%    tux32 pings 172.16.30.1 at tux31:
+%     172.16.31.1(tux32)--172.16.31.254(rt)--172.16.31.253(tux34)--172.16.30.1(tux31)
+%   When tux32 has a shortcut:
+%    After the first ping, it follows a different path:
+%     172.16.31.1(tux32)--172.16.31.253(tux34)--172.16.30.1(tux31)
+%   When tux32 accept redirects and does not have a shortcut, the first ping is like
+%   the first case, then the shortcut is registered and further pings are like the
+%   second case.
+% >3:
+%   Specify which interface is private with ip nat inside and which interface
+%   is public with ip nat outside.
+%       ip nat pool ovrld 172.16.1.39 12.16.1.39 prefix 24
+%       ip nat inside source list 1 pool ovrld overload
+%   Specify which source IP addresses may pass through NAT with access-list:
+%       access-list LIST permit NETWORK MASK
+%       access-list 1 permit 172.16.30.0 0.0.0.7
+%       access-list 1 permit 172.16.31.0 0.0.0.7
+% >4:
+%   NAT = Network Address Translation
+%   It translates IP addresses from a private network (172.16.30.0/24 and 172.16.31.0/24
+%   in our case) to a public IP address (172.16.1.39), mapping each IP address and port
+%   pair to a port on the public IP address (172.16.1.39). Basically, NAT is a
+%   bidirectional functio from the pairs (PrivateIP, PrivatePort) where PrivateIP
+%   is an allowed private IP address present in the access list, to pairs
+%   (PublicIP, PublicPort), where PublicIP in our case is always 172.16.1.39.
+%   The function's mapping is stored in the NAT mapping table.
+%   Packets arriving the router from the private network are translated according to
+%   this "function", and those arriving from the public network are translated back
+%   to their private IP/Port. New entries are added to the NAT mapping table as needed.
 
 \subsection{Exp 5: DNS}
 \label{exp:5}
