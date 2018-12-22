@@ -2,6 +2,91 @@
 
 \begin{document}
 
-Hello World
+\section{Summary}
+\label{sec:summary}
+
+\section{Introduction}
+\label{sec:introduction}
+
+\section{Part 1: Download application}
+\label{sec:downloadapp}
+
+\section{Part 2: Network}
+\label{sec:network}
+
+\subsection{Exp 1: Configure an IP Network}
+\label{exp:1}
+
+% cables:
+%   $ tux41@eth0 -- tux44@eth0
+% tux41:
+%   # ifconfig eth0 up
+%   # ifconfig eth0 172.16.40.1/24
+%   # route add default gw 172.16.40.254
+% tux44:
+%   # ifconfig eth0 up
+%   # ifconfig eth0 172.16.40.254/24
+% >1:
+%   ARP packets are sent in a network to request the MAC address
+%   of the machine with a certain IPv4 address. The protocol specifies
+%   the packet is sent to every host (machine) on the network, and the
+%   one with that IPv4 address responds with its MAC address.
+%   ARP: convert 32-bit logical IP address to a 48-bit physical MAC address.
+% >2:
+%   tux41@eth0 sends an ARP request for 172.16.40.254 on 172.16.40.0/24, which
+%   reaches tux44@eth0 (the only other host on the network). It sends an ARP
+%   response of 00:21:5a:5a:7d:74 back to 172.16.40.1 (tux41@eth0).
+% >3:
+%   ICMP ECHO_REQUEST (protocol number = 1)
+% >4:
+%   IP packet of ICMP ECHO_REQUEST:
+%      Source IP is 172.16.40.1
+%      Destination IP is 172.16.40.254
+%      Reverse for ICMP ECHO_REPLY
+%   Ethernet frame wrapper of ICMP ECHO_REQUEST:
+%      Source MAC address is 00:0f:fe:8b:e4:4d
+%      Destination MAC address is 00:21:5a:5a7d:74
+%      Reverse for wrapper of ICMP ECHO_REPLY
+% >5:
+%   Check the EtherType (in wireshark: eth.type, bytes 12-13):
+%     0x0800 --> IPv4 protocol
+%                then check the protocol in the IP header
+%                1 --> ICMP
+%                6 --> TCP
+%               17 --> UDP
+%     0x0806 --> ARP
+%     0x8035 --> RARP
+% >6:
+%   Ethernet frame: No header field specifying length.
+%     Read the whole thing and measure.
+%   IPv4 packet: the header has two length fields, one for header
+%     length (4 bits, offset 4 bits) and another for packet length
+%     (2 bytes, offset 16 bits)
+% >7:
+%   172.0.0.0/8 is a range of 2²⁴ IPv4 addresses representing the host
+%   machine. Useful for testing or running client-server services in the
+%   host. Generally, in linux, only 172.0.0.1 is used and it is assigned
+%   the local loopback interface lo, though it is not a rule.
+
+\subsection{Exp 2: Implement two virtual LANs in a switch}
+\label{exp:2}
+
+\subsection{Exp 3: Configure a Router in Linux}
+\label{exp:3}
+
+\subsection{Exp 4: Configure a Commercial Router and Implement NAT}
+\label{exp:4}
+
+\subsection{Exp 5: DNS}
+\label{exp:5}
+
+\subsection{Exp 6: TCP connections}
+\label{exp:6}
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+\section{References}
+\label{sec:references}
 
 \end{document}

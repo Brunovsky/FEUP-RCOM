@@ -1,12 +1,12 @@
-\documentclass[12pt,a4paper,portrait,titlepage]{article}
+\documentclass[11pt,a4paper,portrait,titlepage]{article}
 
 \usepackage{./styles/main}
 
 \addbibresource{bib/main.bib}
 
-\newcommand*{\maintitle}{Main Title}
-\newcommand*{\subtitle}{Subtitle}
-\newcommand*{\foottitle}{Foot Title}
+\newcommand*{\maintitle}{Computer Networks}
+\newcommand*{\subtitle}{Redes de Computadores}
+\newcommand*{\foottitle}{RCOM - Lab 2}
 
 \title{
 	\includegraphics[scale=0.20]{feuplogo.jpg}\\
@@ -14,23 +14,26 @@
 	{\large \subtitle{}}
 }
 
+\date{December 22, 2018}
+
 \author{
-	---\\ \text{upXXXXXXXXX}
+	Bruno Carvalho\\\text{up201606517}
 	\and
-	---\\ \text{upXXXXXXXXX}
+	João Malheiro\\\text{up201605926}
 	\and
-	---\\ \text{upXXXXXXXXX}
+	Carlos Daniel Gomes\\\text{up201603404}
 }
 
 \begin{document}
+\begin{titlepage}
 \maketitle
-%\thispagestyle{empty}
 \tableofcontents
-\clearpage
+\thispagestyle{empty}
+\end{titlepage}
 
 \subfile{contents/contents.tex}
 \clearpage
 
-\printbibliography
+%\printbibliography
 
 \end{document}
