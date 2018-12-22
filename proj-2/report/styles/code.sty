@@ -1,0 +1,96 @@
+% ********** LANGUAGES
+
+%\usepackage{./styles/stylecore}
+
+\lstloadlanguages{[ANSI]C,[ISO]C++,[GNU]C++}
+
+% ********** LISTING STYLES
+
+% Gray comments
+\definecolor{sublime-comments}{gray}{0.75}
+
+% Strings
+\definecolor{sublime-strings}{rgb}{1.0,0.6,0.2}
+
+% Keywords (1)
+\definecolor{sublime-keyword}{rgb}{0.7,0.4,1.0}
+
+% Builtin (2)
+\definecolor{sublime-builtin}{rgb}{0.25,0.5,1.0}
+
+% Operators (3)
+\definecolor{sublime-operator}{rgb}{1.0,0.0,0.5}
+
+% Custom functions (4)
+\definecolor{sublime-custom}{rgb}{0.0,0.7,0.3}
+
+\lstdefinestyle{base}{
+	% Printed range
+	showlines=false,
+	emptylines=*3,
+	% Appearance
+	basicstyle=\ttfamily\small,
+	identifierstyle={},
+	commentstyle=\color{sublime-comments},
+	stringstyle=\color{sublime-strings},
+	keywordstyle=[1]\color{sublime-keyword},
+	keywordstyle=[2]\color{sublime-builtin},
+	keywordstyle=[3]\color{sublime-operator},
+	keywordstyle=[4]\color{sublime-custom},
+	% Getting characters, spaces and tabs right
+	inputencoding=utf8,
+	upquote=true,
+	showspaces=false,
+	showtabs=false,
+	showstringspaces=false,
+	tabsize=4,
+	formfeed={},
+	% Line numbers
+	numbers=none,
+	% Margins and line shape
+	breaklines,
+	breakatwhitespace,
+	breakindent=2em,
+	% Frames
+	frame=none,
+	% Column alignment
+	keepspaces=true
+}
+
+\lstdefinestyle{C-sublime}{
+	style=base,
+	% Language
+	language=[ANSI]C,
+	% Keywords
+	morekeywords=[1]{size_t,ssize_t,bool},
+	% Builtins
+	morekeywords=[2]{free,malloc,realloc,calloc},
+	morekeywords=[2]{dup,dup2,dup3,fork,clone,exit,wait,abort,sleep,usleep},
+	morekeywords=[2]{execl,execlp,execle,execv,execvp,execvpe,execveat},
+	morekeywords=[2]{opendir,closedir,dirfd,readdir,readdir_r,scandir,seekdir,telldir,rewinddir},
+	morekeywords=[2]{ftw,nftw,fts_open,fts_read,fts_children,fts_set,fts_close},
+	morekeywords=[2]{stat,lstat,fstat,fstatat,chmod,chown,chdir,readlink,access},
+	morekeywords=[2]{open,close,read,write,lseek},
+	morekeywords=[2]{fopen,fclose,fseek,ftell,rewind,fread,fwrite},
+	morekeywords=[2]{printf,fprintf,sprintf,snprintf,vprintf,vfprintf,vdprintf,vsprintf,vsnprintf},
+	morekeywords=[2]{scanf,fscanf,sscanf,vscanf,vsscanf,vfscanf},
+	morekeywords=[2]{bcopy,memcpy,memccpy,memmove,mempcpy},
+	morekeywords=[2]{strcpy,strcat,strchr,strcmp,strcoll,strcpy,strcspn,strdup,strfry,strlen},
+	morekeywords=[2]{strncat,strncmp,strncpy,strpbrk,strrchr,strsep,strspn,strstr,strtok,strxfrm},
+	morekeywords=[2]{strcasecmp,strncasecmp,index,rindex},
+	morekeywords=[2]{tcgetattr,tcsetattr,tcsendbreak,tcdrain,tcflush,tcflow},
+	morekeywords=[2]{cfmakeraw,cfgetispeed,cfgetospeed,cfsetispeed,cfsetospeed,cfsetspeed},
+	morekeywords=[2]{isalnum,isalpha,iscntl,isdigit,isgraph,islower,isprint},
+	morekeywords=[2]{ispunct,isspace,isupper,isxdigit,isascii,isblank},
+	morekeywords=[2]{isalnum_l,isalpha_l,isblank_l,iscntl_l,isdigit_l,isgraph_l,islower_l},
+	morekeywords=[2]{isprint_l,ispunct_l,isspace_l,isupper_l,isxdigit_l,isascii_l},
+	morekeywords=[2]{newlocale,setlocale,uselocale},
+	morekeywords=[2]{toascii,tolower,toupper},
+	morekeywords=[2]{strtof,strtod,strtold,strtol,strtoll,strtoul,strtoull,atof,atoi,atol},
+	morekeywords=[2]{getopt,getopt_long,getopt_long_only},
+	morekeywords=[2]{rand,srand},
+	morekeywords=[2]{sigaction,setitimer,clock_gettime},
+	% Operators
+	otherkeywords={+,-,*,\%,\&,|,\^,~,!,=,<,>},
+	morekeywords=[3]{+,-,*,\%,++,--,\&,|,\^,~,!,=,+=,-=,*=,/=,\%=,\&=,\^=,|=,==,!=,>,<,>=,<=,<<=,>>=,\&\&,||}
+}

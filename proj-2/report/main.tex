@@ -1,0 +1,36 @@
+\documentclass[12pt,a4paper,portrait,titlepage]{article}
+
+\usepackage{./styles/main}
+
+\addbibresource{bib/main.bib}
+
+\newcommand*{\maintitle}{Main Title}
+\newcommand*{\subtitle}{Subtitle}
+\newcommand*{\foottitle}{Foot Title}
+
+\title{
+	\includegraphics[scale=0.20]{feuplogo.jpg}\\
+	{\Huge \maintitle{}}\\
+	{\large \subtitle{}}
+}
+
+\author{
+	---\\ \text{upXXXXXXXXX}
+	\and
+	---\\ \text{upXXXXXXXXX}
+	\and
+	---\\ \text{upXXXXXXXXX}
+}
+
+\begin{document}
+\maketitle
+%\thispagestyle{empty}
+\tableofcontents
+\clearpage
+
+\subfile{contents/contents.tex}
+\clearpage
+
+\printbibliography
+
+\end{document}
