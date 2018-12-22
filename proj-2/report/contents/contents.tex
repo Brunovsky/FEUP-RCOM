@@ -71,6 +71,20 @@
 \subsection{Exp 2: Implement two virtual LANs in a switch}
 \label{exp:2}
 
+% cables:
+%   $ tux41@eth0 -- sw Fa0/1
+%   $ tux44@eth0 -- sw Fa0/4
+%   $ tux42@eth0 -- sw Fa0/2
+% tux42:
+%   # ifconfig eth0 up
+%   # ifconfig eth0 172.16.41.1/24
+% >1:
+%   create vlan 40 and vlan 41
+%   add ports Fa0/1 and Fa0/4 to vlan 40 and port Fa0/2 to vlan 41.
+% >2:
+%   two broadcast domains (networks), 172.16.40.0/24 for vlan 40,
+%   and 172.16.41.0/24 for vlan 41.
+
 \subsection{Exp 3: Configure a Router in Linux}
 \label{exp:3}
 
