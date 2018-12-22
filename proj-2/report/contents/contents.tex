@@ -261,6 +261,25 @@
 \subsection{Exp 6: TCP connections}
 \label{exp:6}
 
+% >1:
+%   Two TCP connections: the control connection, where the client sends the server
+%   FTP commands and receives FTP responses (server port 21), and the data connection,
+%   through which the server sends retrieved files (opened after the pasv command).
+% >2:
+%   The control connection.
+% >3:
+%   Connection establishment, Connection established, and Connection termination.
+%   Connection establishment:
+%     Client sends SYN
+%     Server sends SYN ACK
+%     Client sends ACK
+%
+%   Connection termination:
+%     Initiator sends FIN
+%     Receiver answers ACK, FIN
+%     Initiator answers ACK and closes
+%     Receiver receives ACK and closes
+
 \section{Conclusion}
 \label{sec:conclusion}
 
