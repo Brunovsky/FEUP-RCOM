@@ -34,8 +34,8 @@
 \hyphenpenalty=100
 \binoppenalty=3000
 \relpenalty=500
-\clubpenalty=3000
-\widowpenalty=7000
+\clubpenalty=0
+\widowpenalty=0
 \displaywidowpenalty=10000
 \brokenpenalty=2000
 \predisplaypenalty=8000
@@ -96,9 +96,18 @@
 
 
 % ********** DOCUMENT'S ENVIRONMENTS
-
+\newenvironment{cables}[2]%
+	{\wrapfigure[#1]{r}[1.5cm]{#2\textwidth}\vspace*{-1.8\baselineskip}\scriptsize}%
+	{\endwrapfigure}
 
 
 % ********** DOCUMENT'S ALIASES AND COMMANDS
 \newcommand*{\textttd}[1]{\texttt{\detokenize{#1}}}
-\newcommand*{\textsld}[1]{\textsl{\texttd{#1}}}
+\newcommand*{\textsld}[1]{\textsl{\textttd{#1}}}
+\newcommand*{\ttd}[1]{\textttd{#1}}
+\newcommand*{\sld}[1]{\textsld{#1}}
+\newcommand*{\cmd}[1]{\ttd{#1}}
+\newcommand*{\tux}[1]{\sld{tux#1}}
+\newcommand*{\iface}[1]{\ttd{#1}}
+
+\newcommand*{\cable}[2]{\ttd{#1}---\ttd{#2}}
