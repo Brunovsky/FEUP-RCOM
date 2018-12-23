@@ -15,10 +15,10 @@
 \label{sec:network}
 
 \clearpage
-\subsection{Configure an IP Network}
+\subsection[Configure an IP Network]{Exp 1. Configure an IP Network}
 \label{subsec:exp1}
 
-\begin{cables}{7}{0.45}
+\begin{cables}{7}{0.40}
 	Cable configuration:\\
 	\cable{tux31@eth0}{tux34@eth0}\\
 	
@@ -59,10 +59,10 @@ Since the packets are directly transmitted, the source and destination MAC addre
 For Ethernet frames, check the EtherType header field on the MAC frame: \ttd{0x0800} for IPv4 and \ttd{0x0806} for ARP. Inside the IP packet, the protocol header field indicates the upper layer protocol: 1 for ICMP, 6 for TCP, 17 for UDP, etc.
 
 \begin{figure}[htb]
-	\centering
-	\includegraphics[width=0.9\textwidth]{exp1-witharp.png}
-	\caption{\tux{31} pings \tux{34}}
-	\label{fig:exp1-witharp}
+\centering
+\includegraphics[width=0.9\textwidth]{exp1-witharp.png}
+\caption{\tux{31} pings \tux{34}}
+\label{fig:exp1-witharp}
 \end{figure}
 
 \paragraph{How to determine the length of a receiving frame?}
@@ -128,7 +128,7 @@ Useful for testing or running client-server services in the host. It is generall
 %   host. Generally, in linux, only 172.0.0.1 is used and it is assigned
 %   the local loopback interface lo, though it is not a rule.
 
-\subsection{Implement two virtual LANs in a switch}
+\subsection[Implement two virtual LANs in a switch]{Exp 2. Implement two virtual LANs in a switch}
 \label{exp:2}
 
 \begin{cables}{14}{0.3}
@@ -167,9 +167,6 @@ Naturally, we connect \iface{tux31@eth0} and \iface{tux34@eth0} to vlan 30 and \
 \subsubsection{Questions}
 \label{subsubsec:exp2questions}
 
-\paragraph{How to configure vlan 30?}
-On the right.
-
 \paragraph{How many broadcast domains are there? How can you conclude it from the logs?}
 The two broadcast domains are the two networks 172.16.30.0/24 and 172.16.31.0/24 because they are not connected.
 
@@ -189,10 +186,10 @@ The two broadcast domains are the two networks 172.16.30.0/24 and 172.16.31.0/24
 %   two broadcast domains (networks), 172.16.30.0/24 for vlan 30,
 %   and 172.16.31.0/24 for vlan 31.
 
-\subsection{Configure a Router in Linux}
+\subsection[Configure a Router in Linux]{Exp 3. Configure a Router in Linux}
 \label{exp:3}
 
-\begin{cables}{8}{0.5}
+\begin{cables}{12}{0.45}
 	\vspace*{-1.5\baselineskip}
 	Cable configuration:\\
 	\cable{tux31@eth0}{sw Fa0/1}\\
@@ -234,7 +231,9 @@ Means \tux{31} is directly connected to all hosts in the network 172.16.30.0/24 
 
 \item \tux{34}: \ttd{172.16.30.0/24 dev eth0}\\
 Means \tux{34} is directly connected to network 172.16.30.0/24 through interface \iface{eth0}.
+\end{itemize}%
 
+\begin{itemize}[noitemsep, leftmargin=*,topsep=0pt]
 \item \tux{34}: \ttd{172.16.31.0/24 dev eth2}\\
 Means \tux{34} is directly connected to network 172.16.31.0/24 through interface \iface{eth2}.
 
@@ -243,7 +242,7 @@ Means that \tux{32} is (indirectly) connected to the network 172.16.30.0/24 thro
 
 \item \tux{32}: \ttd{172.16.31.0/24 dev eth0}\\
 Means \tux{32} is directly connected to network 172.16.31.0/24 through interface \iface{eth0}.
-\end{itemize}
+\end{itemize}%
 
 \paragraph{What information does an entry of the forwarding table contain?}
 The primary information are the \sld{Destination} (host or networks) and the \sld{Gateway}. Packets destined to a certain \sld{Destination} are routed to the respective \sld{Gateway}. For gateway entries, the host is not directly connected to the \sld{Destination} but it always directly connected to the \sld{Gateway}.
@@ -257,6 +256,15 @@ ARP Request/Reply pairs which are required for IP communication:
 \item \tux{34} (172.16.31.253) asks MAC address of 172.16.31.1 (\tux{32})
 \end{itemize}
 When the ARP table is clear, the link layer needs to request the MAC address of the destination IP with an ARP request.
+
+\begin{figure}[hbt]
+\centering
+\includegraphics[width=0.9\textwidth]{exp3-tux4-eth0.png}\\
+\vspace*{.8\baselineskip}
+\includegraphics[width=0.9\textwidth]{exp3-tux4-eth2.png}
+\caption{\tux{31} pings \tux{32}, seen from \iface{tux34@eth0} and \iface{tux34@eth2}}
+\label{fig:exp3-tux4.png}
+\end{figure}
 
 The observed MAC addresses are then:
 \begin{itemize}[noitemsep,leftmargin=*,topsep=0pt]
@@ -366,11 +374,10 @@ For the \ttd{ECHO_REPLY} packets it's the reverse, naturally.
 %     of tux32@eth0.
 %     For ECHO_REPLY it's the reverse.
 
-\clearpage
-\subsection{Configure a Commercial Router and Implement NAT}
+\subsection[Configure a Commercial Router and Implement NAT]{Exp 4. Configure a Commercial Router and Implement NAT}
 \label{exp:4}
 
-\begin{cables}{8}{0.35}
+\begin{cables}{9}{0.35}
 	Cable configuration:\\
 	\cable{tux31@eth0}{sw Fa0/1}\\
 	\cable{tux34@eth0}{sw Fa0/4}\\
@@ -392,7 +399,7 @@ For the \ttd{ECHO_REPLY} packets it's the reverse, naturally.
 	\cmd{end}
 \end{cables}
 
-To allow both networks to communicate with the Internet we connect one of the router's interfaces to network 172.16.31.0/24 and implement NAT, with allowance for \tux{31} and \tux{32}.
+To allow both networks to communicate with the Internet we connect one of the router's interfaces to network 172.16.31.0/24 and implement NAT, with allowance for \tux{31} and \tux{32} but not for \tux{34}.
 
 \subsubsection{Questions}
 \label{subsubsec:exp4questions}
@@ -405,23 +412,64 @@ The command's basic syntax is
 
 \paragraph{What are the paths followed by the packets in the experiments carried out and why?}
 \begin{itemize}[noitemsep,leftmargin=*,topsep=0pt]
-	\item \tux{31} pings 172.16.30.254 at \tux{34}:\\
-	172.16.30.1(\tux{31}) $\rightarrow$ 172.16.30.254(\tux{34})
-	\item \tux{31} pings 172.16.31.253 at \tux{34}:\\
-	   172.16.30.1(\tux{31}) $\rightarrow$ 172.16.30.254(\tux{34})
-	\item \tux{31} pings 172.16.31.1 at \tux{32}:\\
-	   172.16.30.1(\tux{31}) $\rightarrow$ 172.16.30.254(\tux{34}) $\rightarrow$ 172.16.31.1(\tux{32})
-	\item \tux{31} pings 172.16.31.254 at \sld{router}:\\
-	   172.16.30.1(\tux{31}) $\rightarrow$ 172.16.30.254(\tux{34}) $\rightarrow$ 172.16.31.254(\sld{rt})
-	\item \tux{31} pings 172.16.1.39 at \sld{router}:\\
-	   172.16.30.1(\tux{31}) $\rightarrow$ 172.16.30.254(\tux{34}) $\rightarrow$ 172.16.31.254(\sld{rt})
-	\item \tux{31} pings 172.16.1.254 (with NAT implemented in the router):\\
-	   172.16.30.1(\tux{31}) $\rightarrow$ 172.16.30.254(\tux{34}) $\rightarrow$ 172.16.31.254(\sld{rt}) $\rightarrow$ 172.16.1.254(\sld{lab})
+\item \tux{31} pings 172.16.30.254 at \tux{34}:\\
+172.16.30.1(\tux{31}) $\rightarrow$ 172.16.30.254(\tux{34})
+\item \tux{31} pings 172.16.31.253 at \tux{34}:\\
+172.16.30.1(\tux{31}) $\rightarrow$ 172.16.30.254(\tux{34})
+\item \tux{31} pings 172.16.31.1 at \tux{32}:\\
+172.16.30.1(\tux{31}) $\rightarrow$ 172.16.30.254(\tux{34}) $\rightarrow$ 172.16.31.1(\tux{32})
+\item \tux{31} pings 172.16.31.254 at \sld{router}:\\
+172.16.30.1(\tux{31}) $\rightarrow$ 172.16.30.254(\tux{34}) $\rightarrow$ 172.16.31.254(\sld{rt})
+\item \tux{31} pings 172.16.1.39 at \sld{router}:\\
+172.16.30.1(\tux{31}) $\rightarrow$ 172.16.30.254(\tux{34}) $\rightarrow$ 172.16.31.254(\sld{rt})
+\item \tux{31} pings 172.16.1.254 (with NAT implemented in the router):\\
+172.16.30.1(\tux{31}) $\rightarrow$ 172.16.30.254(\tux{34}) $\rightarrow$ 172.16.31.254(\sld{rt}) $\rightarrow$ 172.16.1.254(\sld{lab})
+\item When \tux{32} pings \tux{31} with redirects disabled and no gateway route to 172.16.30.0/24:
+172.16.31.1(\tux{32}) $\rightarrow$ 172.16.31.254(\sld{rt}) $\rightarrow$ 172.16.31.253(\tux{34}) $\rightarrow$ 172.16.30.1(\tux{31})\\
+The ping reply skips the router --- \tux{34} forwards directly to \tux{32} from \tux{31}.
+\item When \tux{32} pings \tux{31} with redirects enabled but no gateway route to 172.16.30.0/24, the first ping is routed to 172.16.30.254(\sld{rt}) --- like the previous case --- but further pings are routed directly to 172.16.30.253(\tux{34}) --- like the next case --- because of the ICMP Redirect sent by the router.
+\item When \tux{32} pings \tux{31} with a gateway route to 172.16.30.0/24 through \tux{34}:
+172.16.31.1(\tux{32}) $\rightarrow$ 172.16.31.253(\tux{34}) $\rightarrow$ 172.16.30.1(\tux{31})
 \end{itemize}
 
 \paragraph{How to configure NAT in a commercial router?}
+Specify which interface is private with \cmd{ip nat inside} and which interface is public with \cmd{ip nat outside}. Then create an access list of IP addresses which are allowed to pass through the NAT:
+\begin{center}
+	\begin{minipage}{0.7\textwidth}
+	\cmd{ip nat pool ovrld 172.16.1.39 172.16.1.39 prefix 24}\\
+	\cmd{ip nat inside source list 1 pool ovrld overload}\\
+	\cmd{access-list 1 permit 172.16.30.0 0.0.0.7}\\
+	\cmd{access-list 1 permit 172.16.31.0 0.0.0.7}
+	\end{minipage}
+\end{center}
+Because we chose mask 0.0.0.7 for the access list for each network, \tux{34} is not allowed past the NAT and its packets addressed to the Internet are rejected.
+
+\begin{figure}[hbt]
+\centering
+\caption{\tux{32} pings \tux{31}, seen from \iface{tux32@eth0}}
+\begin{subfigure}[b]{\textwidth}
+	\centering
+	\includegraphics[width=0.9\textwidth]{exp4-tux2-noredirectnoroute.png}
+	\subcaption{With ICMP redirects disabled and no gateway route}
+	\vspace*{.8\baselineskip}
+\end{subfigure}
+\begin{subfigure}[b]{\textwidth}
+	\centering
+	\includegraphics[width=0.9\textwidth]{exp4-tux2-redirectnoroute.png}
+	\subcaption{With ICMP redirects enabled}
+	\vspace*{.8\baselineskip}
+\end{subfigure}
+\begin{subfigure}[b]{\textwidth}
+	\centering
+	\includegraphics[width=0.9\textwidth]{exp4-tux2-route.png}
+	\subcaption{With gateway through \tux{34}}
+	\vspace*{.8\baselineskip}
+\end{subfigure}
+\label{fig:exp4-tux2.png}
+\end{figure}
 
 \paragraph{What does NAT do?}
+NAT (\textsl{Network Address Translation}) translates IP addresses from a private network (172.16.30.0/24 and 172.16.31.0/24 in our case) to a public IP address (172.16.1.39), mapping each private IP address and port pair to a port on the public IP address. In other words, NAT implements a \textsl{bidirectional function} between pairs (\ttd{PrivateIP}, \ttd{PrivatePort}), where \ttd{PrivateIP} is an allowed IP address present in the access list, to pairs (\ttd{PublicIP}, \ttd{PublicPort}), where \ttd{PublicIP} in our case is always 172.16.1.39. This function's \textsl{mapping} is generated on demand and stored in the NAT \textsl{mapping table}. Packets arriving in the router from the private network have their IP and port translated according to this \textsl{mapping} and then routed to their destination; those arriving from the public network are translated back to their private IP and ports accordingly.
 
 % cables:
 %   $ tux31@eth0 -- sw Fa0/1
@@ -484,43 +532,59 @@ The command's basic syntax is
 %   this "function", and those arriving from the public network are translated back
 %   to their private IP/Port. New entries are added to the NAT mapping table as needed.
 
-\subsection{DNS}
+\subsection[DNS]{Exp 5. DNS}
 \label{exp:5}
 
-% >1:
-%   Edit /etc/resolv.conf by hand or with resolvconf, providing a nameserver
-%   which implements the DNS protocol.
-% >2:
-%   The host sends DNS queries and receives DNS responses.
-%   Information transported: question (domain name and type of record),
-%   answer (IP, resource records of the domain name) and authority.
+With Internet access and a proper DNS server configured, \tux{31} and \tux{32} can now resolve and ping domains on the Internet. \tux{34} can't if we keep the access-list specified in the previous section, as 172.16.31.253 is not allowed past the router's NAT.
 
-\subsection{TCP connections}
+\subsubsection{Questions}
+\label{subsubsec:exp5questions}
+
+\paragraph{How to configure the DNS service at an host?}
+Edit \ttd{/etc/resolv.conf} by hand or with \cmd{resolveconf}, providing a nameserver which implements the DNS protocol. In the lab we use domain netlab.fe.up.pt.
+
+\paragraph{What packets are exchanged by DNS and what information is transported?}
+The host sends DNS queries to the nameserver and receives DNS responses. Information transported in DNS messages include, among other things, the question --- with the domain name and type of record requested --- the answer --- resolved IP, resource records of the domain name --- and the authority.
+
+\begin{figure}[htb]
+\centering
+\includegraphics[width=0.9\textwidth]{exp5-nslookup.png}
+\caption{DNS lookup by \tux{31}}
+\label{fig:exp5-nslookup}
+\end{figure}
+
+\subsection[TCP connections]{Exp 6. TCP connections}
 \label{exp:6}
 
-% >1:
-%   Two TCP connections: the control connection, where the client sends the server
-%   FTP commands and receives FTP responses (server port 21), and the data connection,
-%   through which the server sends retrieved files (opened after the pasv command).
-% >2:
-%   The control connection.
-% >3:
-%   Connection establishment, Connection established, and Connection termination.
-%   Connection establishment:
-%     Client sends SYN
-%     Server sends SYN ACK
-%     Client sends ACK
-%
-%   Connection termination:
-%     Initiator sends FIN
-%     Receiver answers ACK, FIN
-%     Initiator answers ACK and closes
-%     Receiver receives ACK and closes
+\subsubsection{Questions}
+\label{subsubsec:exp6questions}
+
+\paragraph{How many TCP connections are opened by the FTP application? In what connection is transported the FTP control information?}
+The FTP protocol uses two TCP connections: the control connection, where the client sends the server FTP commands and receives FTP replies (server port 21), and the data connection, opened after a \cmd{PASV} command, through which the server sends retrieved files to the client.
+
+\paragraph{What are the phases of a TCP connection?}
+The \textsl{connection establishment}; \textsl{connection established}; and \textsl{connection termination} phases. The initiation is a \textit{3-way handshake}, and the termination is a \textit{4-way handshake} with a timeout.
+
+\begin{figure}[hbt]
+\centering
+\begin{subfigure}[b]{\textwidth}
+	\centering
+	\includegraphics[width=0.9\textwidth]{exp6-establishment.png}
+	\subcaption{TCP connection establishment}
+	\vspace*{.8\baselineskip}
+\end{subfigure}
+\begin{subfigure}[b]{\textwidth}
+	\centering
+	\includegraphics[width=0.9\textwidth]{exp6-termination.png}
+	\subcaption{TCP connection termination}
+	\vspace*{.8\baselineskip}
+\end{subfigure}
+\caption{TCP connection phases}
+\label{fig:exp6-phases}
+\end{figure}
+
 
 \section{Conclusion}
 \label{sec:conclusion}
-
-\section{References}
-\label{sec:references}
 
 \end{document}
