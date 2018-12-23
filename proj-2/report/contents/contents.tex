@@ -4,21 +4,15 @@
 \section{Summary}
 \label{sec:summary}
 
-This project was developed for the curricular course RCOM (Computer Networks). It was finished successfully by implementing all the required functionalities. We built a fully working network application and established the configuration of a network.
+This report was developed for the curricular course RCOM (Computer Networks), and contextualizes the work carried out in the last practical classes. We implement a simple FTP client and configure a private network of computers, a switch and a router.
 
 \section{Introduction}
 \label{sec:introduction}
 
-This project's goal was to configure a working private network of computers, connect it to the Internet, and test an FTP download application. The network consists of two virtual LANs inside a switch.
+The first part of the project consists in implementing an FTP client application called \sld{download}, capable of downloading a single file from an FTP server given an FTP URL.
+In this report we describe its architecture while also analyzing and discussing results.
 
-In this report we show and explain everything about this second project. It is divided in these sections:
-
-\begin{itemize}
-	\item Part 1: Download Application: description of its architecture while also analyzing and discussing results.
-	\item Part 2: Network Configuration: description of its architecture, every experience objectives and analyzes with the answers to all the questions presented and logs saved during the development.
-\end{itemize}
-
-Conclusion: last analysis of the project and final reflections.
+The second part involves configuring a working private network of computers, connecting it to the Internet, and testing the FTP download application. At every step we will analyze the saved logs and describe the network architecture, while answering the presented questions.
 
 \section{Part 1: Download application}
 \label{sec:downloadapp}
@@ -41,14 +35,7 @@ The download sequence is comprised of 7 steps:
 
 The URL is parsed by a regular expression which matches valid URLs with the \textsl{ftp} protocol, no port, and non-empty file paths --- function \sld{parse_url()}. Afterwards, the URL's hostname is resolved and the protocol connection is established --- function \sld{ftp_open_control_socket()}. After acknowledging the server's welcome response, we login with the provided or defaulted username as passwords --- \sld{ftp_login()}. Then we open a passive connection with a \ttd{PASV} command --- \sld{ftp_open_passive_socket()} --- retrieve the requested file with \ttd{RETR} --- \sld{send_retrieve()} --- and read the file from the socket connection until the end --- \sld{download_file()}.
 
-\subsection{Download Report}
-Below we retrieved the file at \ttd{ftp://ftp.up.pt/pub/debian/README}.
-
-\begin{figure}[htb]
-\centering
-\includegraphics[width=0.9\textwidth]{report.png}
-\label{fig:report success}
-\end{figure}
+An example log of the download of file \ttd{ftp://ftp.up.pt/pub/debian/README} can be found in \autoref{fig:download}.
 
 \section{Part 2: Network}
 \label{sec:network}
@@ -73,9 +60,6 @@ Below we retrieved the file at \ttd{ftp://ftp.up.pt/pub/debian/README}.
 We start by creating a private network 172.16.30.0/24 for computers \tux{31} and \tux{34}, connecting directly their interfaces \iface{tux31@eth0} and \iface{tux34@eth0}. Interface \iface{tux31@eth0} is given IP address 172.16.30.1/24, and \iface{tux34@eth0} is given 172.16.30.254/24.
 We test the connectivity of \tux{31} and \tux{34} with a simple \cmd{ping} command.
 
-\subsubsection{Questions}
-\label{subsubsec:exp1questions}
-
 \paragraph{What are the ARP packets and what are they used for?}
 ARP request packets are broadcast in a network by a host to retrieve the MAC address of the machine with a certain IPv4 address.
 The protocol specifies the packet is sent to every host machine in the network,
@@ -96,7 +80,7 @@ Since the packets are directly transmitted, the source and destination MAC addre
 \paragraph{How to determine if a receiving Ethernet frame is ARP, IP, ICMP?} 
 For Ethernet frames, check the EtherType header field on the MAC frame: \ttd{0x0800} for IPv4 and \ttd{0x0806} for ARP. Inside the IP packet, the protocol header field indicates the upper layer protocol: 1 for ICMP, 6 for TCP, 17 for UDP, etc.
 
-\begin{figure}[htb]
+\begin{figure}[htbp]
 \centering
 \includegraphics[width=0.9\textwidth]{exp1-witharp.png}
 \caption{\tux{31} pings \tux{34}}
@@ -202,9 +186,6 @@ Useful for testing or running client-server services in the host. It is generall
 Now we are going to create a second private network 172.16.31.0/24 for \tux{32}, and connect our two networks to two virtual LANs in the switch: vlan 30 for network 172.16.30.0/24 and vlan 31 for network 172.16.31.0/24.
 Naturally, we connect \iface{tux31@eth0} and \iface{tux34@eth0} to vlan 30 and \iface{tux32@eth0} to vlan 31. Notice there is no connection between the networks yet, so \tux{32} cannot communicate with neither \tux{31} or \tux{34}.
 
-\subsubsection{Questions}
-\label{subsubsec:exp2questions}
-
 \paragraph{How many broadcast domains are there? How can you conclude it from the logs?}
 The two broadcast domains are the two networks 172.16.30.0/24 and 172.16.31.0/24 because they are not connected.
 
@@ -228,7 +209,6 @@ The two broadcast domains are the two networks 172.16.30.0/24 and 172.16.31.0/24
 \label{exp:3}
 
 \begin{cables}{12}{0.45}
-	\vspace*{-1.5\baselineskip}
 	Cable configuration:\\
 	\cable{tux31@eth0}{sw Fa0/1}\\
 	\cable{tux34@eth0}{sw Fa0/4}\\
@@ -253,9 +233,6 @@ The two broadcast domains are the two networks 172.16.30.0/24 and 172.16.31.0/24
 
 In this configuration we enable a new interface \iface{tux34@eth2} and connect it to network 172.16.31.0/24 through vlan 31.
 This way \tux{34} connects the two networks, and enabling IP forwarding allows \tux{31} and \tux{32} to communicate.
-
-\subsubsection{Questions}
-\label{subsubsec:exp3questions}
 
 \paragraph{What routes are there in the tuxes? What are their meaning?}
 The routes listed by command \cmd{ip route} are as follows:
@@ -298,7 +275,7 @@ ARP Request/Reply pairs which are required for IP communication:
 \end{itemize}
 When the ARP table is clear, the link layer needs to request the MAC address of the destination IP with an ARP request.
 
-\begin{figure}[hbt]
+\begin{figure}[hbtp]
 \centering
 \includegraphics[width=0.9\textwidth]{exp3-tux4-eth0.png}\\
 \vspace*{.8\baselineskip}
@@ -439,9 +416,6 @@ For the \ttd{ECHO_REPLY} packets it's the reverse, naturally.
 
 To allow both networks to communicate with the Internet we connect one of the router's interfaces to network 172.16.31.0/24 and implement NAT, with allowance for \tux{31} and \tux{32} but not for \tux{34}.
 
-\subsubsection{Questions}
-\label{subsubsec:exp4questions}
-
 \paragraph{How to configure a static route in a commercial router?}
 The command's basic syntax is
 \begin{center}
@@ -470,6 +444,8 @@ The ping reply skips the router --- \tux{34} forwards directly to \tux{32} from 
 172.16.31.1(\tux{32}) $\rightarrow$ 172.16.31.253(\tux{34}) $\rightarrow$ 172.16.30.1(\tux{31})
 \end{itemize}
 
+See also \autoref{fig:exp4-tux2.png}.
+
 \paragraph{How to configure NAT in a commercial router?}
 Specify which interface is private with \cmd{ip nat inside} and which interface is public with \cmd{ip nat outside}. Then create an access list of IP addresses which are allowed to pass through the NAT:
 \begin{center}
@@ -481,30 +457,6 @@ Specify which interface is private with \cmd{ip nat inside} and which interface 
 \end{minipage}
 \end{center}
 Because we chose mask 0.0.0.7 for the access list for each network, \tux{34} is not allowed past the NAT and its packets addressed to the Internet are rejected.
-
-\begin{figure}[hbt]
-\centering
-\caption{\tux{32} pings \tux{31}, seen from \iface{tux32@eth0}}
-\begin{subfigure}[b]{\textwidth}
-	\centering
-	\includegraphics[width=0.9\textwidth]{exp4-tux2-noredirectnoroute.png}
-	\subcaption{With ICMP redirects disabled and no gateway route}
-	\vspace*{.8\baselineskip}
-\end{subfigure}
-\begin{subfigure}[b]{\textwidth}
-	\centering
-	\includegraphics[width=0.9\textwidth]{exp4-tux2-redirectnoroute.png}
-	\subcaption{With ICMP redirects enabled}
-	\vspace*{.8\baselineskip}
-\end{subfigure}
-\begin{subfigure}[b]{\textwidth}
-	\centering
-	\includegraphics[width=0.9\textwidth]{exp4-tux2-route.png}
-	\subcaption{With gateway through \tux{34}}
-	\vspace*{.8\baselineskip}
-\end{subfigure}
-\label{fig:exp4-tux2.png}
-\end{figure}
 
 \paragraph{What does NAT do?}
 NAT (\textsl{Network Address Translation}) translates IP addresses from a private network (172.16.30.0/24 and 172.16.31.0/24 in our case) to a public IP address (172.16.1.39), mapping each private IP address and port pair to a port on the public IP address. In other words, NAT implements a \textsl{bidirectional function} between pairs (\ttd{PrivateIP}, \ttd{PrivatePort}), where \ttd{PrivateIP} is an allowed IP address present in the access list, to pairs (\ttd{PublicIP}, \ttd{PublicPort}), where \ttd{PublicIP} in our case is always 172.16.1.39. This function's \textsl{mapping} is generated on demand and stored in the NAT \textsl{mapping table}. Packets arriving in the router from the private network have their IP and port translated according to this \textsl{mapping} and then routed to their destination; those arriving from the public network are translated back to their private IP and ports accordingly.
@@ -575,16 +527,13 @@ NAT (\textsl{Network Address Translation}) translates IP addresses from a privat
 
 With Internet access and a proper DNS server configured, \tux{31} and \tux{32} can now resolve and ping domains on the Internet. \tux{34} can't if we keep the access-list specified in the previous section, as 172.16.31.253 is not allowed past the router's NAT.
 
-\subsubsection{Questions}
-\label{subsubsec:exp5questions}
-
 \paragraph{How to configure the DNS service at an host?}
 Edit \ttd{/etc/resolv.conf} by hand or with \cmd{resolveconf}, providing a nameserver which implements the DNS protocol. In the lab we use domain netlab.fe.up.pt.
 
 \paragraph{What packets are exchanged by DNS and what information is transported?}
 The host sends DNS queries to the nameserver and receives DNS responses. Information transported in DNS messages include, among other things, the question --- with the domain name and type of record requested --- the answer --- resolved IP, resource records of the domain name --- and the authority.
 
-\begin{figure}[htb]
+\begin{figure}[hbtp]
 \centering
 \includegraphics[width=0.9\textwidth]{exp5-nslookup.png}
 \caption{DNS lookup by \tux{31}}
@@ -594,24 +543,21 @@ The host sends DNS queries to the nameserver and receives DNS responses. Informa
 \subsection[TCP connections]{Exp 6. TCP connections}
 \label{exp:6}
 
-\subsubsection{Questions}
-\label{subsubsec:exp6questions}
-
 \paragraph{How many TCP connections are opened by the FTP application? In what connection is transported the FTP control information?}
 The FTP protocol uses two TCP connections: the control connection, where the client sends the server FTP commands and receives FTP replies (server port 21), and the data connection, opened after a \cmd{PASV} command, through which the server sends retrieved files to the client.
 
 \paragraph{What are the phases of a TCP connection?}
 The \textsl{connection establishment}; \textsl{connection established}; and \textsl{connection termination} phases. The initiation is a \textit{3-way handshake}, and the termination is a \textit{4-way handshake} with a timeout.
 
-\begin{figure}[hbt]
+\begin{figure}[hbtp]
 \centering
-\begin{subfigure}[b]{\textwidth}
+\begin{subfigure}[hbtp]{\textwidth}
 	\centering
 	\includegraphics[width=0.9\textwidth]{exp6-establishment.png}
 	\subcaption{TCP connection establishment}
 	\vspace*{.8\baselineskip}
 \end{subfigure}
-\begin{subfigure}[b]{\textwidth}
+\begin{subfigure}[hbtp]{\textwidth}
 	\centering
 	\includegraphics[width=0.9\textwidth]{exp6-termination.png}
 	\subcaption{TCP connection termination}
@@ -621,8 +567,69 @@ The \textsl{connection establishment}; \textsl{connection established}; and \tex
 \label{fig:exp6-phases}
 \end{figure}
 
+\paragraph{Is the throughput of a TCP data connection disturbed by the appearance of a second TCP connection? How?}
 
-\section{Conclusion}
-\label{sec:conclusion}
-We implemented all the specified requirements and features. The most challenging part encountered in the development phase was adapting to all the different network concepts in the beginning because we weren’t familiar with most of them.
+Yes, as evidenced from the throughput statistics at \tux{31} and \tux{32}, see \autoref{fig:exp6-throughput}, where they download the same file from the same server. \tux{32} starts the download about 10 seconds later than \tux{31}, dropping its throughput to half. When \tux{31} concludes the download, the throughput at \tux{32} doubles, as it is not allowed the bandwidth that was reserved for \tux{31}.
+
+\section{Conclusions}
+\label{sec:conclusions}
+
+The private network we configured in part 2 was simple but allows us to understand throughly multiple aspects and concepts of computer networking, namely routing, protocols, layers and addresses.
+
+The \sld{download} application we developed is straightforward, reports on all stages, all FTP control messages, and all errors it encounters, and closes the connection with the server gracefully even in those cases.
+
+\clearpage
+\section{Appendix: Statistics}
+\label{sec:statistics}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{report.png}
+\caption{Successful download of \ttd{ftp://ftp.up.pt/pub/debian/project/trace/mirrors.up.pt}}
+\label{fig:download}
+\end{figure}
+
+\begin{figure}[hbtp]
+\centering
+\caption{\tux{32} pings \tux{31}, seen from \iface{tux32@eth0}}
+\begin{subfigure}[hbtp]{\textwidth}
+	\centering
+	\includegraphics[width=0.9\textwidth]{exp4-tux2-noredirectnoroute.png}
+	\subcaption{With ICMP redirects disabled and no gateway route}
+	\vspace*{.8\baselineskip}
+\end{subfigure}
+\begin{subfigure}[hbtp]{\textwidth}
+	\centering
+	\includegraphics[width=0.9\textwidth]{exp4-tux2-redirectnoroute.png}
+	\subcaption{With ICMP redirects enabled}
+	\vspace*{.8\baselineskip}
+\end{subfigure}
+\begin{subfigure}[hbtp]{\textwidth}
+	\centering
+	\includegraphics[width=0.9\textwidth]{exp4-tux2-route.png}
+	\subcaption{With gateway through \tux{34}}
+	\vspace*{.8\baselineskip}
+\end{subfigure}
+\label{fig:exp4-tux2.png}
+\end{figure}
+
+\begin{figure}[hbtp]
+\centering
+\caption{Throughputs of concurrent download of 310 MB file in \tux{31} and \tux{32}.}
+\begin{subfigure}[hbtp]{\textwidth}
+	\centering
+	\includegraphics[width=\textwidth]{exp6-tux31-concurrent.png}
+	\subcaption{Throughput in \tux{31}}
+	\vspace*{.8\baselineskip}
+\end{subfigure}
+\begin{subfigure}[hbtp]{\textwidth}
+	\centering
+	\includegraphics[width=\textwidth]{exp6-tux32-concurrent.png}
+	\subcaption{Throughput in \tux{32}}
+	\vspace*{.8\baselineskip}
+\end{subfigure}
+\label{fig:exp6-throughput}
+\end{figure}
+
+
 \end{document}
