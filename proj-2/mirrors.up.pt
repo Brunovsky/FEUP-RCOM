@@ -1,0 +1,21 @@
+Sun Dec 23 16:29:45 UTC 2018
+Date: Sun, 23 Dec 2018 16:29:45 +0000
+Date-Started: Sun, 23 Dec 2018 16:19:43 +0000
+Archive serial: 2018122303
+Used ftpsync version: 20180513
+Creator: ftpsync 20180513
+Running on host: mirrors.up.pt
+Maintainer: UPorto Mirror Service <mirrors@uporto.pt>
+Sponsor: University of Porto <https://www.up.pt>
+Country: PT
+Location: Porto
+Throughput: 10Gb
+Architectures: all amd64 arm64 armel armhf hurd-i386 i386 ia64 kfreebsd-amd64 kfreebsd-i386 mips mips64el mipsel powerpc ppc64el s390 s390x source sparc 
+Architectures-Configuration: ALL
+Upstream-mirror: ftp.nl.debian.org
+Rsync-Transport: undefined
+Total bytes received in rsync: 132603609
+Total time spent in stage1 rsync: 426
+Total time spent in stage2 rsync: 176
+Total time spent in rsync: 602
+Average rate: 220271 B/s
